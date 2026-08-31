@@ -1,0 +1,134 @@
+/* Hoja compartida por las pantallas de formulario del panel (zona y servicio).
+   La cabecera de pantalla, las cifras y el comportamiento tabla-a-ficha viven
+   en `src/styles.css`, porque también los usan las pantallas de listado. */
+
+.admin-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-xs);
+  overflow: hidden;
+}
+
+/* Cada grupo de campos es una sección con su propio rótulo: en un formulario de
+   diez campos, agrupar por significado se lee mucho mejor que una retícula
+   plana de diez cajas seguidas. */
+.admin-form__grupo { padding: var(--space-6); }
+.admin-form__grupo + .admin-form__grupo { border-top: 1px solid var(--line); }
+.admin-form__grupo-head { margin-bottom: var(--space-5); }
+.admin-form__grupo-head h3 { margin-bottom: 4px; font-size: 17px; }
+.admin-form__grupo-head p { margin: 0; font-size: 13px; color: var(--ink-500); max-width: 60ch; }
+
+.admin-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
+.admin-form__grid .field--full { grid-column: 1 / -1; }
+.admin-form__grid .field:last-child,
+.admin-form__grid .field--full:last-child { margin-bottom: 0; }
+
+/* Pie de acciones pegajoso: en un formulario largo, Guardar no debería obligar
+   a bajar hasta el final. */
+.admin-form__acciones {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-4) var(--space-6);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+
+/* ── campo de imagen ─────────────────────────────────────────────────────── */
+
+.subida {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.subida__vista {
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.subida__panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.subida__acciones { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.subida__ruta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px var(--space-3);
+  background: var(--surface-2);
+  border-radius: var(--r-xs);
+  font-size: 12px;
+  color: var(--ink-600);
+  word-break: break-all;
+}
+.subida__ruta app-icon { flex: none; color: var(--ok); }
+/* El input nativo se oculta pero sigue siendo el que recibe el foco y el clic
+   desde su etiqueta, así que el control permanece accesible por teclado. */
+.subida__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.subida__input:focus-visible + .subida__boton { box-shadow: var(--ring); }
+
+@media (max-width: 720px) {
+  .admin-form__grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-form__grupo { padding: var(--space-5); }
+  .admin-form__acciones { flex-direction: column-reverse; padding-inline: var(--space-5); }
+  .admin-form__acciones .btn { width: 100%; }
+  .subida { grid-template-columns: minmax(0, 1fr); }
+  .subida__vista { max-width: 260px; }
+}
+
+/* Etiqueta accesible solo para lector de pantalla: el buscador lleva icono en
+   vez de rótulo visible, pero sigue necesitando nombre accesible. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── ubicación de una estación ───────────────────────────────────────────── */
+
+/* Los dos campos de coordenadas y su previsualización, lado a lado: ver caer el
+   punto en el mapa mientras se teclea es lo que delata un signo cambiado. */
+.estacion-ubicacion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.estacion-ubicacion__mapa { display: block; }
+.estacion-ubicacion__vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 240px;
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--ink-400);
+  font-size: 13px;
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-xl);
+}
+@media (max-width: 900px) {
+  .estacion-ubicacion { grid-template-columns: minmax(0, 1fr); }
+}

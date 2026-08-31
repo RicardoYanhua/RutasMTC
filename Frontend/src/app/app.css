@@ -1,0 +1,10 @@
+/* Centinela de 1px que `App` observa con IntersectionObserver para saber si la
+   página ya scrolleó (ver `App.ngAfterViewInit`). No ocupa espacio. */
+.header-centinela {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}

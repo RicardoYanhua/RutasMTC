@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- Marca de "estación": marquesina de andén sobre vía en fuga.
+       Se usa como marca de agua a baja opacidad en las tarjetas de estación,
+       para que no se confundan con las tarjetas de zona turística (que llevan
+       fotografía real de fondo). -->
+
+  <!-- vía en fuga: dos raíles hacia el punto de fuga y sus traviesas -->
+  <path d="M52 158 L92 74" opacity=".9"/>
+  <path d="M148 158 L108 74" opacity=".9"/>
+  <path d="M60 141 L140 141" opacity=".55"/>
+  <path d="M69 123 L131 123" opacity=".45"/>
+  <path d="M77 106 L123 106" opacity=".35"/>
+  <path d="M84 90 L116 90" opacity=".28"/>
+
+  <!-- marquesina del andén -->
+  <path d="M26 62 L100 24 L174 62"/>
+  <path d="M26 62 L174 62" opacity=".9"/>
+
+  <!-- pilares -->
+  <path d="M44 62 L44 116" opacity=".7"/>
+  <path d="M156 62 L156 116" opacity=".7"/>
+
+  <!-- reloj de andén -->
+  <circle cx="100" cy="48" r="11" opacity=".85"/>
+  <path d="M100 42 L100 48 L104 51" stroke-width="2.4" opacity=".85"/>
+</svg>

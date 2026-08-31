@@ -1,0 +1,44 @@
+.servicio-skeleton { height: 300px; border-radius: var(--r-md); }
+
+.servicio-trayecto {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  margin: 0;
+  font-size: 13.5px; font-weight: 500; color: var(--ink-600);
+}
+.servicio-trayecto app-icon { color: var(--acc-600); flex: none; }
+
+/* Horario como línea de tiempo horizontal: salida, duración y retorno se leen
+   como un trayecto en vez de como tres cifras sueltas. */
+.servicio-horario {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+.servicio-horario > div { display: flex; flex-direction: column; gap: 1px; }
+.servicio-horario span { font-size: 10.5px; color: var(--ink-500); }
+.servicio-horario strong {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  letter-spacing: -0.02em; color: var(--text);
+}
+.servicio-horario__linea {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  height: 100%;
+}
+.servicio-horario__linea::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: var(--line-strong);
+}
+.servicio-horario__linea span {
+  position: relative;
+  padding: 2px 8px;
+  background: var(--surface-2);
+  color: var(--ink-500);
+  white-space: nowrap;
+}

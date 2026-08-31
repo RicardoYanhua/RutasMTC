@@ -1,0 +1,183 @@
+<div class="admin-toolbar">
+  <div>
+    <h1>Zonas turísticas</h1>
+    <p>
+      @if (puedeEditar()) {
+        Catálogo de Travel Group Perú. Cada zona parte de una estación y se publica cuando el MTC la habilita.
+      } @else {
+        Catálogo de Travel Group Perú, en consulta. Solo esa entidad puede darlo de alta o modificarlo.
+      }
+    </p>
+  </div>
+  @if (puedeEditar()) {
+    <button type="button" class="btn btn-primary" (click)="nueva()">
+      <app-icon name="plus" [size]="16" />
+      Nueva zona turística
+    </button>
+  } @else {
+    <span class="tag tag-neutral">
+      <app-icon name="lock" [size]="12" [strokeWidth]="2.2" />
+      Solo lectura
+    </span>
+  }
+</div>
+
+<div class="panel-cifras">
+  <div class="panel-cifra">
+    <app-icon name="leaf" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ zonas().length }}</strong>
+      <span>zonas registradas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="check-circle" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ publicadas() }}</strong>
+      <span>publicadas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="clock" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ pendientes() }}</strong>
+      <span>pendientes del MTC</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="image" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ sinFoto() }}</strong>
+      <span>sin fotografía</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="train" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ estacionesCubiertas() }}</strong>
+      <span>estaciones cubiertas</span>
+    </span>
+  </div>
+</div>
+
+<div class="filtros">
+  <label class="filtros__buscador">
+    <app-icon name="search" [size]="16" />
+    <span class="sr-only">Buscar zona turística</span>
+    <input
+      type="search"
+      class="input"
+      placeholder="Buscar por nombre, código o estación…"
+      [value]="busqueda()"
+      (input)="busqueda.set($any($event.target).value)"
+    />
+  </label>
+  <app-segmented
+    [options]="filtrosEstado"
+    [value]="filtroEstado()"
+    ariaLabel="Filtrar por estado"
+    (valueChange)="filtroEstado.set($event)"
+  />
+  <span class="filtros__conteo num">{{ visibles().length }} de {{ zonas().length }}</span>
+</div>
+
+@if (cargando()) {
+  <div class="rejilla" aria-hidden="true">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <div class="skeleton registro-skeleton"></div>
+    }
+  </div>
+} @else if (visibles().length === 0) {
+  <div class="empty-state">
+    <span class="empty-state__icon"><app-icon name="search" [size]="24" /></span>
+    <h3>{{ zonas().length === 0 ? 'Aún no hay zonas turísticas' : 'Ninguna zona coincide' }}</h3>
+    <p>
+      {{
+        zonas().length === 0
+          ? 'Usa "Nueva zona turística" para registrar la primera.'
+          : 'Prueba con otro texto de búsqueda o cambia el filtro de estado.'
+      }}
+    </p>
+  </div>
+} @else {
+  <div class="rejilla">
+    @for (zona of visibles(); track zona.zon_id_zona) {
+      <article class="registro" [class.registro--baja]="!zona.zon_activo">
+        <div class="registro__foto">
+          <app-image-slot
+            [src]="zona.zon_imagen_url"
+            [alt]="'Fotografía de ' + zona.zon_nombre"
+            [fill]="true"
+            [icon]="iconoCategoria(zona)"
+            [iconSize]="28"
+          />
+          <div class="registro__estados">
+            <app-estado-registro [activo]="zona.zon_activo" [publicado]="zona.zon_publicado" genero="f" />
+          </div>
+        </div>
+
+        <div class="registro__cuerpo">
+          <div class="registro__cab">
+            <span class="registro__code code">{{ zona.zon_codigo }}</span>
+            <span class="tag tag-accent">
+              <app-icon [name]="iconoCategoria(zona)" [size]="11" [strokeWidth]="2" />
+              {{ zona.zon_categoria }}
+            </span>
+          </div>
+          <h3 class="registro__nombre">{{ zona.zon_nombre }}</h3>
+          <p class="registro__meta">
+            <app-icon name="train" [size]="13" />
+            <span>{{ zona.estacionNombre }}</span>
+          </p>
+          @if (zona.zon_descripcion) {
+            <p class="registro__desc">{{ zona.zon_descripcion }}</p>
+          }
+          <div class="registro__datos num">
+            <div><strong>{{ zona.zon_distancia_km }} km</strong><span>ida</span></div>
+            <div><strong>{{ zona.zon_minutos_ida_vuelta }} min</strong><span>total</span></div>
+            <div><strong>{{ zona.zon_dificultad }}</strong><span>esfuerzo</span></div>
+          </div>
+        </div>
+
+        @if (puedeEditar()) {
+          <div class="registro__acciones">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="editar(zona)">
+              <app-icon name="edit" [size]="14" />
+              Editar
+            </button>
+            @if (zona.zon_activo) {
+              <button type="button" class="btn btn-danger btn-sm" (click)="pedirBaja(zona)">
+                <app-icon name="close" [size]="14" />
+                Dar de baja
+              </button>
+            } @else {
+              <button type="button" class="btn btn-secondary btn-sm" [disabled]="ocupado()" (click)="reactivar(zona)">
+                <app-icon name="refresh" [size]="14" />
+                Reactivar
+              </button>
+            }
+          </div>
+        }
+      </article>
+    }
+  </div>
+}
+
+@if (aDarDeBaja(); as zona) {
+  <div class="dialog-backdrop" (click)="aDarDeBaja.set(null)">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="baja-zona" (click)="$event.stopPropagation()">
+      <h3 id="baja-zona" class="dialog-title">Dar de baja la zona</h3>
+      <p class="dialog-body">
+        <strong>{{ zona.zon_nombre }}</strong> dejará de aparecer en el planificador. No se borra nada: la ficha, su
+        fotografía y sus hitos se conservan, y puedes reactivarla cuando quieras.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="aDarDeBaja.set(null)">Cancelar</button>
+        <button type="button" class="btn btn-danger" [disabled]="ocupado()" (click)="confirmarBaja()">
+          <app-icon name="close" [size]="15" />
+          {{ ocupado() ? 'Guardando…' : 'Dar de baja' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

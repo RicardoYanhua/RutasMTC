@@ -1,0 +1,195 @@
+<div class="admin-toolbar">
+  <div>
+    <h1>Estaciones ferroviarias</h1>
+    <p>
+      @if (puedeEditar()) {
+        Catálogo de PeruRail. Cada estación se publica cuando el MTC la habilita.
+      } @else {
+        Catálogo de PeruRail, en consulta. Travel Group lo usa para vincular sus zonas turísticas.
+      }
+    </p>
+  </div>
+  @if (puedeEditar()) {
+    <button type="button" class="btn btn-primary" (click)="nueva()">
+      <app-icon name="plus" [size]="16" />
+      Nueva estación
+    </button>
+  } @else {
+    <span class="tag tag-neutral">
+      <app-icon name="lock" [size]="12" [strokeWidth]="2.2" />
+      Solo lectura
+    </span>
+  }
+</div>
+
+<div class="panel-cifras">
+  <div class="panel-cifra">
+    <app-icon name="train" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ estaciones().length }}</strong>
+      <span>estaciones</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="check-circle" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ publicadas() }}</strong>
+      <span>publicadas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="pin" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ regiones() }}</strong>
+      <span>regiones cubiertas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="leaf" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ zonasTotales() }}</strong>
+      <span>zonas asociadas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="layers" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ andenesTotales() }}</strong>
+      <span>andenes</span>
+    </span>
+  </div>
+</div>
+
+@if (!puedeEditar()) {
+  <div class="admin-readonly-note">
+    <app-icon name="info" [size]="17" />
+    <span>
+      Este catálogo lo mantiene PeruRail. Aquí lo consultas para asociar tus zonas turísticas a un punto de partida,
+      pero no se edita desde tu rol.
+    </span>
+  </div>
+}
+
+<div class="filtros">
+  <label class="filtros__buscador">
+    <app-icon name="search" [size]="16" />
+    <span class="sr-only">Buscar estación</span>
+    <input
+      type="search"
+      class="input"
+      placeholder="Buscar por nombre, código o región…"
+      [value]="busqueda()"
+      (input)="busqueda.set($any($event.target).value)"
+    />
+  </label>
+  <app-segmented
+    [options]="filtrosEstado"
+    [value]="filtroEstado()"
+    ariaLabel="Filtrar por estado"
+    (valueChange)="filtroEstado.set($event)"
+  />
+  <span class="filtros__conteo num">{{ visibles().length }} de {{ estaciones().length }}</span>
+</div>
+
+@if (cargando()) {
+  <div class="rejilla" aria-hidden="true">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <div class="skeleton registro-skeleton"></div>
+    }
+  </div>
+} @else if (visibles().length === 0) {
+  <div class="empty-state">
+    <span class="empty-state__icon"><app-icon name="train" [size]="24" /></span>
+    <h3>{{ estaciones().length === 0 ? 'Aún no hay estaciones' : 'Ninguna estación coincide' }}</h3>
+    <p>
+      {{
+        estaciones().length === 0
+          ? 'Usa "Nueva estación" para registrar la primera del catálogo.'
+          : 'Prueba con otro texto de búsqueda o cambia el filtro de estado.'
+      }}
+    </p>
+  </div>
+} @else {
+  <div class="rejilla">
+    @for (estacion of visibles(); track estacion.est_id_estacion) {
+      <article class="registro" [class.registro--baja]="!estacion.est_activo">
+        <div class="registro__foto">
+          <app-image-slot
+            [src]="estacion.est_imagen_url"
+            [alt]="'Fotografía de la estación ' + estacion.est_nombre"
+            [fill]="true"
+            icon="train"
+            [iconSize]="28"
+          />
+          <div class="registro__estados">
+            <app-estado-registro [activo]="estacion.est_activo" [publicado]="estacion.est_publicado" genero="f" />
+          </div>
+        </div>
+
+        <div class="registro__cuerpo">
+          <div class="registro__cab">
+            <span class="registro__code code">{{ estacion.est_codigo }}</span>
+            @if (estacion.est_badge) {
+              <span class="tag tag-accent">{{ estacion.est_badge }}</span>
+            }
+          </div>
+          <h3 class="registro__nombre">{{ estacion.est_nombre }}</h3>
+          <p class="registro__meta num">
+            <app-icon name="pin" [size]="13" />
+            <span>{{ estacion.est_region }}</span>
+            <span class="dot" aria-hidden="true"></span>
+            <span>{{ estacion.est_altitud_msnm }} msnm</span>
+          </p>
+          <p class="registro__desc num">
+            {{ estacion.est_latitud }}, {{ estacion.est_longitud }}
+          </p>
+          <div class="registro__datos num">
+            <div><strong>{{ estacion.est_andenes }}</strong><span>andenes</span></div>
+            <div><strong>{{ estacion.zonasCount ?? 0 }}</strong><span>zonas a pie</span></div>
+            <div><strong>{{ estacion.serviciosCount ?? 0 }}</strong><span>servicios</span></div>
+          </div>
+        </div>
+
+        @if (puedeEditar()) {
+          <div class="registro__acciones">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="editar(estacion)">
+              <app-icon name="edit" [size]="14" />
+              Editar
+            </button>
+            @if (estacion.est_activo) {
+              <button type="button" class="btn btn-danger btn-sm" (click)="pedirBaja(estacion)">
+                <app-icon name="close" [size]="14" />
+                Dar de baja
+              </button>
+            } @else {
+              <button type="button" class="btn btn-secondary btn-sm" [disabled]="ocupado()" (click)="reactivar(estacion)">
+                <app-icon name="refresh" [size]="14" />
+                Reactivar
+              </button>
+            }
+          </div>
+        }
+      </article>
+    }
+  </div>
+}
+
+@if (aDarDeBaja(); as estacion) {
+  <div class="dialog-backdrop" (click)="aDarDeBaja.set(null)">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="baja-est" (click)="$event.stopPropagation()">
+      <h3 id="baja-est" class="dialog-title">Dar de baja la estación</h3>
+      <p class="dialog-body">
+        <strong>{{ estacion.est_nombre }}</strong> saldrá del planificador, y con ella las
+        <strong class="num">{{ estacion.zonasCount ?? 0 }}</strong> zonas que parten de aquí. No se borra nada: la
+        ficha se conserva y puedes reactivarla cuando quieras.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="aDarDeBaja.set(null)">Cancelar</button>
+        <button type="button" class="btn btn-danger" [disabled]="ocupado()" (click)="confirmarBaja()">
+          <app-icon name="close" [size]="15" />
+          {{ ocupado() ? 'Guardando…' : 'Dar de baja' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

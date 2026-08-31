@@ -1,0 +1,198 @@
+<button type="button" class="admin-volver" (click)="volver()">
+  <app-icon name="chevron-left" [size]="15" />
+  Horarios y tarifas
+</button>
+
+<div class="admin-toolbar">
+  <div>
+    <h1>{{ titulo() }}</h1>
+    <p>El horario y la tarifa que registres aquí son los que se muestran en el paso de alternativas y en el informe.</p>
+  </div>
+</div>
+
+@if (cargando()) {
+  <div class="admin-form" aria-busy="true">
+    <div class="admin-form__grupo">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+} @else {
+  <form class="admin-form" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Tramo</h3>
+        <p>Estaciones que conecta el servicio y nombre comercial del tren.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="estacionOrigenId">Estación de origen</label>
+          <select
+            id="estacionOrigenId"
+            class="input"
+            formControlName="estacionOrigenId"
+            [class.is-invalid]="form.controls.estacionOrigenId.invalid && form.controls.estacionOrigenId.touched"
+          >
+            <option [ngValue]="null" disabled>Selecciona el origen</option>
+            @for (estacion of estaciones(); track estacion.est_id_estacion) {
+              <option [ngValue]="estacion.est_id_estacion">{{ estacion.est_nombre }}</option>
+            }
+          </select>
+          @if (form.controls.estacionOrigenId.invalid && form.controls.estacionOrigenId.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Selecciona la estación de origen.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="estacionDestinoId">Destino</label>
+          <select
+            id="estacionDestinoId"
+            class="input"
+            formControlName="estacionDestinoId"
+            [class.is-invalid]="
+              (form.controls.estacionDestinoId.invalid || form.errors?.['mismoTramo']) &&
+              form.controls.estacionDestinoId.touched
+            "
+          >
+            <option [ngValue]="null" disabled>Selecciona el destino</option>
+            @for (estacion of estaciones(); track estacion.est_id_estacion) {
+              <option [ngValue]="estacion.est_id_estacion">{{ estacion.est_nombre }}</option>
+            }
+          </select>
+          @if (form.controls.estacionDestinoId.invalid && form.controls.estacionDestinoId.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Selecciona el destino.</span>
+          } @else if (form.errors?.['mismoTramo'] && form.controls.estacionDestinoId.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> El destino debe ser distinto del origen.</span>
+          }
+        </div>
+
+        <div class="field field--full">
+          <label for="nombreServicio">Servicio</label>
+          <!-- Campo libre con sugerencias, no una lista cerrada: PeruRail
+               mantiene su propia oferta y dar de alta un tren nuevo no puede
+               depender de que alguien edite una constante del código. -->
+          <input
+            id="nombreServicio"
+            class="input"
+            type="text"
+            list="servicios-sugeridos"
+            formControlName="nombreServicio"
+            maxlength="80"
+            placeholder="Expedition"
+            [class.is-invalid]="form.controls.nombreServicio.invalid && form.controls.nombreServicio.touched"
+          />
+          <datalist id="servicios-sugeridos">
+            @for (nombre of serviciosSugeridos; track nombre) {
+              <option [value]="nombre"></option>
+            }
+          </datalist>
+          @if (form.controls.nombreServicio.invalid && form.controls.nombreServicio.touched) {
+            <span class="field-error">
+              <app-icon name="warning" [size]="13" />
+              Escribe el nombre del servicio, entre 3 y 80 caracteres.
+            </span>
+          } @else {
+            <span class="field-hint">Nombre comercial del tren. Empieza a escribir para ver los habituales.</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Horario</h3>
+        <p>El retorno debe ser posterior a la salida del mismo día.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="horaSalida">Hora de salida</label>
+          <input
+            id="horaSalida"
+            type="time"
+            class="input num"
+            formControlName="horaSalida"
+            [class.is-invalid]="
+              (form.controls.horaSalida.invalid || form.errors?.['retornoInvalido']) && form.controls.horaSalida.touched
+            "
+          />
+          @if (form.controls.horaSalida.invalid && form.controls.horaSalida.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Indica la hora de salida.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="horaRetorno">Hora de retorno</label>
+          <input
+            id="horaRetorno"
+            type="time"
+            class="input num"
+            formControlName="horaRetorno"
+            [class.is-invalid]="
+              (form.controls.horaRetorno.invalid || form.errors?.['retornoInvalido']) &&
+              form.controls.horaRetorno.touched
+            "
+          />
+          @if (form.controls.horaRetorno.invalid && form.controls.horaRetorno.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Indica la hora de retorno.</span>
+          } @else if (form.errors?.['retornoInvalido'] && form.controls.horaRetorno.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> El retorno debe ser posterior a la salida.</span>
+          }
+        </div>
+
+        <div class="field field--full">
+          <label for="minutosTransito">Tiempo de tránsito (min)</label>
+          <input
+            id="minutosTransito"
+            type="number"
+            min="1"
+            max="600"
+            class="input num"
+            formControlName="minutosTransito"
+            [class.is-invalid]="form.controls.minutosTransito.invalid && form.controls.minutosTransito.touched"
+          />
+          @if (form.controls.minutosTransito.invalid && form.controls.minutosTransito.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Debe estar entre 1 y 600 minutos.</span>
+          } @else {
+            <span class="field-hint">Duración del viaje en tren en un sentido.</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Tarifa</h3>
+        <p>Precio del tramo completo, ida y vuelta, en soles.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field field--full">
+          <label for="precio">Tarifa ida y vuelta (S/)</label>
+          <input
+            id="precio"
+            type="number"
+            step="5"
+            min="0"
+            class="input num"
+            formControlName="precio"
+            [class.is-invalid]="form.controls.precio.invalid && form.controls.precio.touched"
+          />
+          @if (form.controls.precio.invalid && form.controls.precio.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Ingresa una tarifa válida.</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <div class="admin-form__acciones">
+      <button type="button" class="btn btn-secondary" (click)="volver()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="enviando()">
+        <app-icon name="check" [size]="16" />
+        {{ enviando() ? 'Guardando…' : esEdicion() ? 'Guardar cambios' : 'Crear servicio' }}
+      </button>
+    </div>
+  </form>
+}

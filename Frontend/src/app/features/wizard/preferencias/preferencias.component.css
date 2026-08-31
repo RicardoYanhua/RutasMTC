@@ -1,0 +1,158 @@
+.preferencias__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(24px, 5vw, 64px);
+  align-items: start;
+}
+
+.preferencias__aviso { margin-top: var(--space-4); }
+.preferencias__nota { margin-top: var(--space-3); max-width: 52ch; }
+.preferencias__fecha { max-width: 260px; margin-bottom: 0; }
+
+/* ── tarjetas de interés ─────────────────────────────────────────────────── */
+
+/* Regla del bloque: sin elegir, la tarjeta es BLANCO Y NEGRO (foto desaturada
+   sobre tinta). Al elegirla recupera el color de la foto y toma el acento. El
+   color es, literalmente, el estado seleccionado. */
+.interes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.interes {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  background: var(--ink-900);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  transition: border-color .25s var(--ease-io), transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.interes:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--ink-400); }
+.interes:focus-visible { outline: none; box-shadow: var(--ring); }
+.interes:active { transform: translateY(0) scale(0.985); }
+
+.interes__foto { position: absolute; inset: 0; display: block; background: var(--ink-800); }
+.interes__foto img {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: grayscale(1) contrast(1.12) brightness(0.82);
+  opacity: 0.72;
+  transition: filter .35s var(--ease-io), opacity .35s var(--ease-io), transform .5s var(--ease);
+}
+/* Mientras no haya foto real, trama diagonal: comunica "pendiente" sin gritar,
+   y ya en el blanco y negro que le toca a la tarjeta sin elegir. */
+.interes__foto::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 9px,
+    rgba(255, 255, 255, 0.05) 9px 10px
+  );
+}
+.interes:hover .interes__foto img { transform: scale(1.04); }
+
+.interes__silueta {
+  position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.13);
+  transition: color .3s var(--ease-io), transform .5s var(--ease);
+}
+.interes:hover .interes__silueta { transform: translate(-50%, -50%) scale(1.06); }
+.interes.is-active .interes__silueta { color: rgba(255, 255, 255, 0.3); }
+
+/* Velo inferior: el rótulo tiene que leerse sobre cualquier fotografía. */
+.interes__cuerpo {
+  position: absolute; inset: auto 0 0 0; z-index: 1;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--space-4);
+  background: linear-gradient(to top, rgba(16, 14, 13, 0.92) 32%, rgba(16, 14, 13, 0) 100%);
+}
+.interes__icono { color: rgba(255, 255, 255, 0.62); transition: color .25s var(--ease-io); }
+.interes__nombre {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  letter-spacing: -0.015em; line-height: 1.15; color: #fff;
+}
+
+.interes__check {
+  position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+  display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: transparent;
+  transition: background-color .25s var(--ease-io), border-color .25s var(--ease-io), color .2s var(--ease-io);
+}
+
+.interes.is-active { border-color: var(--acc-500); box-shadow: var(--sh-acc); }
+.interes.is-active .interes__foto img { filter: none; opacity: 1; }
+.interes.is-active .interes__foto::after { opacity: 0.35; }
+.interes.is-active .interes__cuerpo {
+  background: linear-gradient(to top, rgba(138, 26, 17, 0.94) 26%, rgba(16, 14, 13, 0.45) 72%, transparent 100%);
+}
+.interes.is-active .interes__icono { color: var(--acc-200); }
+.interes.is-active .interes__check { background: var(--acc-600); border-color: var(--acc-500); color: #fff; }
+
+@media (max-width: 1180px) {
+  .interes-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .interes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .interes { aspect-ratio: 4 / 3; }
+}
+
+/* ── control de rango ────────────────────────────────────────────────────── */
+
+.rango {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.rango__lectura { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.rango__valor {
+  font-family: var(--font-display); font-size: 30px; font-weight: 500;
+  letter-spacing: -0.035em; line-height: 1; color: var(--text);
+}
+.rango__apoyo { font-size: 12.5px; color: var(--ink-500); }
+.rango__escala {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--ink-400);
+}
+
+/* ── resumen del filtro (panel de tinta) ─────────────────────────────────── */
+
+.preferencias__resumen { position: sticky; top: calc(var(--header-h) + 88px); }
+.resumen {
+  display: flex; flex-direction: column; gap: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-md);
+}
+.resumen__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.resumen__head h4 { margin: 0; }
+.resumen__head app-icon { color: rgba(255, 255, 255, 0.45); }
+
+/* La cifra es el resultado del formulario: tamaño de titular para que sea lo
+   primero que se mira al soltar un control. */
+.resumen__conteo {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(229, 55, 42, 0.16);
+  border: 1px solid rgba(229, 55, 42, 0.34);
+  border-radius: var(--r-sm);
+}
+.resumen__conteo-num {
+  font-family: var(--font-display); font-size: 42px; font-weight: 500;
+  letter-spacing: -0.045em; line-height: 1; color: #fff;
+}
+.resumen__conteo-txt { font-size: 13px; color: var(--acc-200); line-height: 1.3; }
+
+@media (max-width: 940px) {
+  .preferencias__grid { grid-template-columns: 1fr; }
+  .preferencias__resumen { position: static; }
+}

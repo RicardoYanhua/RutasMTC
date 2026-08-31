@@ -1,0 +1,3 @@
+/* Alto del esqueleto igual al de una tarjeta real (foto 16:9 + cuerpo +
+   acciones): así la retícula no salta al llegar los datos. */
+.registro-skeleton { height: 372px; border-radius: var(--r-md); }

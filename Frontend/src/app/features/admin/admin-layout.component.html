@@ -1,0 +1,112 @@
+<div class="admin-shell">
+  <aside class="admin-sidebar" [class.is-open]="sidebarAbierto()">
+    <!-- Rótulo, no enlace: el panel no navega a ningún sitio desde su propio título. -->
+    <div class="admin-sidebar__titulo">
+      <span class="admin-sidebar__titulo-marca" aria-hidden="true">
+        <app-icon [name]="iconoRol()" [size]="17" />
+      </span>
+      <span class="admin-sidebar__titulo-texto">
+        <strong>Panel de Control</strong>
+        <span>{{ entidad() }}</span>
+      </span>
+    </div>
+
+    <p class="admin-sidebar__group">Catálogo</p>
+
+    @if (auth.ve('zonas')) {
+      <a class="admin-sidebar__link" routerLink="/admin/zonas" routerLinkActive="is-active" (click)="cerrarSidebar()">
+        <app-icon name="leaf" [size]="17" />
+        Zonas turísticas
+        @if (!auth.edita('zonas')) {
+          <app-icon name="lock" [size]="13" class="admin-sidebar__candado" />
+        }
+      </a>
+    }
+    @if (auth.ve('estaciones')) {
+      <a class="admin-sidebar__link" routerLink="/admin/estaciones" routerLinkActive="is-active" (click)="cerrarSidebar()">
+        <app-icon name="train" [size]="17" />
+        Estaciones
+        @if (!auth.edita('estaciones')) {
+          <app-icon name="lock" [size]="13" class="admin-sidebar__candado" />
+        }
+      </a>
+    }
+    @if (auth.ve('servicios')) {
+      <a class="admin-sidebar__link" routerLink="/admin/servicios" routerLinkActive="is-active" (click)="cerrarSidebar()">
+        <app-icon name="ticket" [size]="17" />
+        Horarios y tarifas
+        @if (!auth.edita('servicios')) {
+          <app-icon name="lock" [size]="13" class="admin-sidebar__candado" />
+        }
+      </a>
+    }
+
+    @if (auth.ve('publicacion')) {
+      <p class="admin-sidebar__group">Plataforma</p>
+      <a class="admin-sidebar__link" routerLink="/admin/publicacion" routerLinkActive="is-active" (click)="cerrarSidebar()">
+        <app-icon name="check-circle" [size]="17" />
+        Publicación
+      </a>
+    }
+
+    <!-- Única salida del panel: cerrar sesión.
+         Se retiró el atajo "Ver sitio público" a propósito: dejaba al operador
+         en la web pública con la sesión todavía abierta, y desde ahí el panel
+         parecía cerrado sin estarlo. Ahora salir es un acto explícito. -->
+    <div class="admin-sidebar__footer">
+      <button type="button" class="admin-sidebar__link admin-sidebar__link--salir" (click)="pedirCerrarSesion()">
+        <app-icon name="logout" [size]="17" />
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <button
+        type="button"
+        class="btn btn-secondary btn-icon btn-sm admin-sidebar-toggle"
+        (click)="toggleSidebar()"
+        [attr.aria-expanded]="sidebarAbierto()"
+        aria-label="Abrir menú lateral"
+      >
+        <app-icon name="menu" [size]="18" />
+      </button>
+
+      <div class="admin-user">
+        <span class="admin-user__name">
+          {{ usuario()?.nombreCompleto || usuario()?.usuario }}
+          <small>{{ etiquetaRol() }}</small>
+        </span>
+        <span class="admin-user__avatar" aria-hidden="true">{{ iniciales() }}</span>
+      </div>
+    </div>
+
+    <router-outlet />
+  </main>
+</div>
+
+@if (confirmarSalida()) {
+  <div class="dialog-backdrop" (click)="confirmarSalida.set(false)">
+    <div
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="salir-titulo"
+      (click)="$event.stopPropagation()"
+    >
+      <h3 id="salir-titulo" class="dialog-title">Cerrar sesión</h3>
+      <p class="dialog-body">
+        Se cerrará la sesión de <strong>{{ usuario()?.nombreCompleto || usuario()?.usuario }}</strong> en este
+        navegador. Los cambios que ya guardaste se conservan.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="confirmarSalida.set(false)">Seguir en el panel</button>
+        <button type="button" class="btn btn-danger" (click)="cerrarSesion()">
+          <app-icon name="logout" [size]="15" />
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </div>
+}

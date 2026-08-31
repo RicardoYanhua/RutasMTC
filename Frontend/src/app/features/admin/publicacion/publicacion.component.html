@@ -1,0 +1,138 @@
+<div class="admin-toolbar">
+  <div>
+    <h1>Publicación</h1>
+    <p>
+      Qué del catálogo llega al ciudadano. PeruRail y Travel Group registran y dan de baja lo suyo; el MTC decide qué
+      se publica. Nada se borra: lo retirado sigue aquí y puede volver.
+    </p>
+  </div>
+</div>
+
+<div class="panel-cifras">
+  <div class="panel-cifra">
+    <app-icon name="clock" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ pendientes() }}</strong>
+      <span>esperan tu visto bueno</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="check-circle" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ publicados() }}</strong>
+      <span>publicados</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="close" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ deBaja() }}</strong>
+      <span>dados de baja por su dueño</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="layers" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ filas().length }}</strong>
+      <span>registros en total</span>
+    </span>
+  </div>
+</div>
+
+<div class="filtros">
+  <app-segmented
+    [options]="pestanas"
+    [value]="pestana()"
+    ariaLabel="Filtrar por estado de publicación"
+    (valueChange)="pestana.set($event)"
+  />
+  <app-segmented [options]="tipos" [value]="tipo()" ariaLabel="Filtrar por tipo" (valueChange)="tipo.set($event)" />
+  <span class="filtros__conteo num">{{ visibles().length }} registros</span>
+</div>
+
+@if (cargando()) {
+  <div class="rejilla" aria-hidden="true">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <div class="skeleton publicacion-skeleton"></div>
+    }
+  </div>
+} @else if (visibles().length === 0) {
+  <div class="empty-state">
+    <span class="empty-state__icon"><app-icon name="check-circle" [size]="24" /></span>
+    <h3>Nada por revisar aquí</h3>
+    <p>
+      @if (pestana() === 'Pendientes') {
+        Todo lo que las dos fuentes han registrado ya está publicado.
+      } @else {
+        No hay registros con este filtro. Prueba con otra pestaña.
+      }
+    </p>
+  </div>
+} @else {
+  <div class="rejilla">
+    @for (fila of visibles(); track clave(fila)) {
+      <article class="registro" [class.registro--baja]="!fila.activo">
+        <div class="registro__foto">
+          <app-image-slot
+            [src]="fila.imagenUrl"
+            [alt]="'Imagen de ' + fila.titulo"
+            [fill]="true"
+            [icon]="fila.icono"
+            [iconSize]="28"
+          />
+          <div class="registro__estados">
+            <app-estado-registro
+              [activo]="fila.activo"
+              [publicado]="fila.publicado"
+              [genero]="fila.tipo === 'servicio' ? 'm' : 'f'"
+            />
+          </div>
+        </div>
+
+        <div class="registro__cuerpo">
+          <div class="registro__cab">
+            <span class="registro__code code">{{ fila.fuente }}</span>
+            <span class="tag tag-neutral">
+              <app-icon [name]="fila.icono" [size]="11" [strokeWidth]="2" />
+              {{ fila.tipo === 'zona' ? 'Zona' : fila.tipo === 'estacion' ? 'Estación' : 'Servicio' }}
+            </span>
+          </div>
+          <h3 class="registro__nombre">{{ fila.titulo }}</h3>
+          <p class="registro__meta">{{ fila.subtitulo }}</p>
+          <p class="registro__desc num">{{ fila.detalle }}</p>
+        </div>
+
+        <div class="registro__acciones">
+          @if (!fila.activo) {
+            <!-- Publicar algo dado de baja no tiene sentido: primero su dueño
+                 tiene que reactivarlo. El backend también lo rechaza. -->
+            <span class="publicacion-bloqueado">
+              <app-icon name="lock" [size]="14" />
+              {{ fila.fuente }} debe reactivarlo antes
+            </span>
+          } @else if (fila.publicado) {
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm btn-block"
+              [disabled]="ocupado() === clave(fila)"
+              (click)="alternarPublicacion(fila)"
+            >
+              <app-icon name="eye-off" [size]="14" />
+              Retirar del sitio
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn btn-primary btn-sm btn-block"
+              [disabled]="ocupado() === clave(fila)"
+              (click)="alternarPublicacion(fila)"
+            >
+              <app-icon name="check" [size]="14" />
+              {{ ocupado() === clave(fila) ? 'Publicando…' : 'Publicar' }}
+            </button>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}

@@ -1,0 +1,138 @@
+<section #panel class="container alternativas">
+  <header class="paso-head alternativas__head stagger-item">
+    <div>
+      <h1>Alternativas desde {{ wizard.estacion()?.est_nombre }}</h1>
+      <p>Zonas que caben en tu filtro, con las condiciones del día de viaje.</p>
+    </div>
+    <button type="button" class="btn btn-quiet btn-sm" (click)="ajustarPreferencias()">
+      <app-icon name="sliders" [size]="15" />
+      Ajustar preferencias
+    </button>
+  </header>
+
+  <!-- Condiciones del día: banda de tinta compacta. Es contexto, no el asunto
+       del paso, así que se lee de un vistazo y deja el foco en las zonas. -->
+  <div class="condiciones ink stagger-item">
+    <div class="condiciones__bloque">
+      <span class="condiciones__fuente">SENAMHI</span>
+      @if (cargandoClima()) {
+        <div class="skeleton skeleton-line w-60" aria-hidden="true"></div>
+      } @else if (clima(); as c) {
+        <div class="condiciones__lectura">
+          <app-icon [name]="iconoClima()" [size]="34" [strokeWidth]="1.4" />
+          <strong class="condiciones__temp num">{{ c.cli_temp }}°C</strong>
+          <span class="condiciones__cond">{{ c.cli_condicion }}</span>
+        </div>
+        <div class="condiciones__datos num">
+          <span><strong>{{ c.cli_prob_lluvia }}%</strong><span>lluvia</span></span>
+          <span><strong>{{ c.cli_viento_kmh }}</strong><span>km/h viento</span></span>
+          <span><strong>{{ c.cli_uv_indice }}</strong><span>índice UV</span></span>
+        </div>
+        @if (c.cli_aviso) {
+          <p class="condiciones__aviso">
+            <app-icon name="info" [size]="14" />
+            {{ c.cli_aviso }}
+          </p>
+        }
+      } @else {
+        <p class="condiciones__nulo">Pronóstico no disponible para esta fecha.</p>
+      }
+    </div>
+
+    <div class="condiciones__bloque">
+      <span class="condiciones__fuente">PeruRail</span>
+      @if (cargandoServicio()) {
+        <div class="skeleton skeleton-line w-60" aria-hidden="true"></div>
+      } @else if (servicio(); as s) {
+        <div class="condiciones__lectura">
+          <app-icon name="train" [size]="34" [strokeWidth]="1.4" />
+          <strong class="condiciones__temp num">S/ {{ s.est_precio }}</strong>
+          <span class="condiciones__cond">{{ s.est_nombre_servicio }}</span>
+        </div>
+        <div class="condiciones__datos num">
+          <span><strong>{{ s.est_hora_salida }}</strong><span>salida</span></span>
+          <span><strong>{{ s.est_minutos_transito }} min</strong><span>tránsito</span></span>
+          <span><strong>{{ s.est_hora_retorno }}</strong><span>retorno</span></span>
+        </div>
+      } @else {
+        <p class="condiciones__nulo">Sin servicio ferroviario registrado para esta estación.</p>
+      }
+    </div>
+  </div>
+
+  <div class="alternativas__titulo stagger-item">
+    <h2>Zonas turísticas que califican</h2>
+    @if (!cargando()) {
+      <span class="tag tag-solid num">{{ zonas().length }}</span>
+    }
+    <p>Elige una para ver el recorrido a pie de ida y vuelta.</p>
+  </div>
+
+  @if (cargando()) {
+    <div class="zonas-grid" aria-hidden="true">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton alternativas__skeleton"></div>
+      }
+    </div>
+  } @else if (zonas().length === 0) {
+    <div class="empty-state stagger-item">
+      <span class="empty-state__icon"><app-icon name="search" [size]="24" /></span>
+      <h3>Ninguna zona cumple el filtro</h3>
+      <p>Amplía los intereses, sube el esfuerzo permitido o dale más minutos a la caminata.</p>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="ajustarPreferencias()">Ajustar preferencias</button>
+    </div>
+  } @else {
+    <div class="zonas-grid">
+      @for (zona of zonas(); track zona.zon_id_zona) {
+        <button
+          type="button"
+          class="zona-card"
+          [class.is-active]="zonaActivaId() === zona.zon_id_zona"
+          [attr.aria-pressed]="zonaActivaId() === zona.zon_id_zona"
+          (click)="seleccionar(zona)"
+        >
+          <app-image-slot
+            class="zona-card__foto"
+            [src]="zona.zon_imagen_url"
+            [alt]="'Fotografía de ' + zona.zon_nombre"
+            [fill]="true"
+            [icon]="iconoCategoria(zona)"
+            [iconSize]="34"
+          />
+          <span class="zona-card__velo" aria-hidden="true"></span>
+
+          <span class="zona-card__cab">
+            <span class="tag tag-accent">
+              <app-icon [name]="iconoCategoria(zona)" [size]="12" [strokeWidth]="2" />
+              {{ zona.zon_categoria }}
+            </span>
+            <span class="zona-card__check" aria-hidden="true">
+              <app-icon name="check" [size]="13" [strokeWidth]="2.6" />
+            </span>
+          </span>
+
+          <span class="zona-card__cuerpo">
+            <span class="zona-card__nombre">{{ zona.zon_nombre }}</span>
+            <span class="zona-card__desc">{{ zona.zon_descripcion }}</span>
+            <span class="zona-card__datos num">
+              <span><strong>{{ zona.zon_distancia_km }} km</strong><span>ida</span></span>
+              <span><strong>{{ zona.zon_minutos_ida_vuelta }} min</strong><span>total</span></span>
+              <span><strong>{{ zona.zon_dificultad }}</strong><span>esfuerzo</span></span>
+            </span>
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <div class="paso-acciones">
+    <button type="button" class="btn btn-secondary" (click)="cambiarEstacion()">
+      <app-icon name="chevron-left" [size]="16" />
+      Cambiar estación
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="!wizard.zonaSeleccionada()" (click)="continuar()">
+      Ver ruta peatonal
+      <app-icon name="arrow-right" [size]="16" class="btn-arrow" />
+    </button>
+  </div>
+</section>

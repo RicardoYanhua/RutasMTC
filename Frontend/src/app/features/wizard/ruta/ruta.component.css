@@ -1,0 +1,66 @@
+/* Cifras del recorrido: una sola banda de tinta con filetes verticales, sin
+   cuatro cajas idénticas flotando. En un paso mayoritariamente blanco es lo que
+   fija la jerarquía: los cuatro números del recorrido son el titular real. */
+.ruta__cifras {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-md);
+  overflow: hidden;
+  margin-bottom: var(--space-12);
+}
+.ruta__cifra { padding: var(--space-6); }
+.ruta__cifra + .ruta__cifra { border-left: 1px solid rgba(255, 255, 255, 0.12); }
+.ruta__cifra span {
+  display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5); margin-bottom: 8px;
+}
+.ruta__cifra strong {
+  font-family: var(--font-display); font-size: clamp(20px, 2vw, 26px); font-weight: 500;
+  letter-spacing: -0.03em; line-height: 1.1; color: #fff;
+}
+
+.ruta__grid { display: grid; grid-template-columns: minmax(0, 1.35fr) 340px; gap: clamp(24px, 4vw, 56px); align-items: start; }
+.ruta__subtitulo { margin-bottom: var(--space-5); }
+.ruta__aside { display: flex; flex-direction: column; gap: var(--space-4); }
+.ruta__zona { gap: var(--space-4); }
+.ruta__zona h4 { margin: 0; }
+.ruta__foto { border-radius: var(--r-sm); }
+.ruta__clima-panel, .ruta__mapa-panel { display: flex; flex-direction: column; gap: var(--space-4); }
+.ruta__clima-panel .panel-head, .ruta__mapa-panel .panel-head { margin-bottom: 0; align-items: center; }
+.ruta__clima {
+  display: flex; align-items: center; gap: var(--space-3);
+  font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--acc-800);
+}
+.ruta__mapa-panel .field-hint { margin: 0; }
+
+/* Línea de tiempo del recorrido. Los hitos intermedios van en tono más suave
+   para que salida, destino y retorno se lean de un vistazo. */
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-8); position: relative; }
+.timeline::before {
+  content: ""; position: absolute; left: 15px; top: 14px; bottom: 14px;
+  width: 2px; background: var(--line);
+}
+.timeline__paso { position: relative; padding-block: var(--space-4); }
+.timeline__icono {
+  position: absolute; left: calc(var(--space-8) * -1); top: var(--space-4);
+  display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 50%; background: var(--surface);
+  border: 1px solid var(--acc-200); color: var(--acc-700);
+}
+.timeline__paso--hito .timeline__icono { border-color: var(--line-strong); color: var(--ink-400); }
+.timeline__cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.timeline__cabecera strong { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: -0.018em; }
+.timeline__min { font-size: 12.5px; color: var(--ink-500); flex: none; }
+.timeline__cuerpo p { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-600); }
+.timeline__paso--hito .timeline__cabecera strong { font-weight: 500; color: var(--ink-700); }
+
+@media (max-width: 940px) {
+  .ruta__grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .ruta__cifras { grid-template-columns: repeat(2, 1fr); }
+  .ruta__cifra:nth-child(odd) { border-left: 0; }
+  .ruta__cifra:nth-child(n + 3) { border-top: 1px solid rgba(255, 255, 255, 0.12); }
+}

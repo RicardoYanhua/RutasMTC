@@ -1,0 +1,121 @@
+<section class="login" (click)="cerrar()">
+  <div
+    class="login__panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="login-titulo"
+    (click)="$event.stopPropagation()"
+  >
+    <button type="button" class="login__close" (click)="cerrar()" aria-label="Cerrar">
+      <app-icon name="close" [size]="16" />
+    </button>
+
+    <a routerLink="/" class="nav-brand login__brand" (click)="cerrarPopup()">
+      <app-icon name="logo" [size]="22" class="brand-mark" />
+      RUTAS·MTC
+    </a>
+
+    <div class="login__intro">
+      <h2 id="login-titulo">Sistema interno</h2>
+      <p>Gestión de zonas turísticas, consulta de estaciones y registro de horarios y tarifas.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+      <div class="field">
+        <label for="usuario">Usuario</label>
+        <input
+          id="usuario"
+          type="text"
+          class="input"
+          [class.is-invalid]="usuario.invalid && usuario.touched"
+          [attr.aria-invalid]="usuario.invalid && usuario.touched ? 'true' : null"
+          [attr.aria-describedby]="usuario.invalid && usuario.touched ? 'usuario-error' : null"
+          formControlName="usuario"
+          placeholder="operador.tgp"
+          autocomplete="username"
+        />
+        @if (usuario.invalid && usuario.touched) {
+          <span id="usuario-error" class="field-error">
+            <app-icon name="warning" [size]="13" />
+            El usuario es obligatorio.
+          </span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="clave">Contraseña</label>
+        <div class="field__wrap">
+          <input
+            id="clave"
+            [type]="mostrarClave() ? 'text' : 'password'"
+            class="input"
+            [class.is-invalid]="clave.invalid && clave.touched"
+            [attr.aria-invalid]="clave.invalid && clave.touched ? 'true' : null"
+            [attr.aria-describedby]="clave.invalid && clave.touched ? 'clave-error' : null"
+            formControlName="clave"
+            placeholder="Contraseña del panel"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="field__toggle"
+            [attr.aria-label]="mostrarClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            (click)="toggleClave()"
+          >
+            <app-icon [name]="mostrarClave() ? 'eye-off' : 'eye'" [size]="18" />
+          </button>
+        </div>
+        @if (clave.errors?.['required'] && clave.touched) {
+          <span id="clave-error" class="field-error">
+            <app-icon name="warning" [size]="13" />
+            La contraseña es obligatoria.
+          </span>
+        } @else if (clave.errors?.['minlength'] && clave.touched) {
+          <span id="clave-error" class="field-error">
+            <app-icon name="warning" [size]="13" />
+            Debe tener al menos 4 caracteres.
+          </span>
+        }
+      </div>
+
+      @if (cuentas().length) {
+        <div class="login__demo">
+          <p class="login__demo-titulo">
+            <app-icon name="info" [size]="14" />
+            Entrar como…
+          </p>
+          <p class="login__demo-nota">
+            Cada rol abre módulos distintos del panel. Elige uno para probar el sistema con esa entidad.
+          </p>
+
+          <div class="login__roles">
+            @for (cuenta of cuentas(); track cuenta.usuario) {
+              <button
+                type="button"
+                class="login__rol"
+                [disabled]="enviando()"
+                (click)="entrarComo(cuenta)"
+              >
+                <span class="login__rol-marca" aria-hidden="true">
+                  <app-icon [name]="iconoRol(cuenta.rol)" [size]="16" />
+                </span>
+                <span class="login__rol-texto">
+                  <strong>{{ etiquetaRol(cuenta.rol) }}</strong>
+                  <span>{{ descripcionRol(cuenta.rol) }}</span>
+                  <span class="login__rol-usuario code">{{ cuenta.usuario }}</span>
+                </span>
+                <app-icon name="arrow-right" [size]="15" class="login__rol-flecha" />
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="enviando()">
+        <app-icon name="lock" [size]="16" />
+        {{ enviando() ? 'Ingresando…' : 'Ingresar al panel' }}
+      </button>
+      <a routerLink="/" class="btn btn-quiet btn-block login__volver" (click)="cerrarPopup()">Volver al inicio público</a>
+    </form>
+  </div>
+</section>

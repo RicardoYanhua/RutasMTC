@@ -1,0 +1,141 @@
+<section #panel class="estacion">
+  <div class="container">
+    <header class="paso-head stagger-item">
+      <h1>Estación de partida</h1>
+      <p>
+        Catálogo de PeruRail, sincronizado a diario. Elige desde dónde saldrás a caminar en el mapa o en las tarjetas.
+      </p>
+    </header>
+  </div>
+
+  <!-- El mapa ocupa la sección entera; en escritorio las tarjetas flotan dentro -->
+  <div class="mapa-pleno stagger-item">
+    <app-leaflet-map
+      [markers]="marcadores()"
+      [seleccionadoId]="estacionActivaId()"
+      [hoveredId]="resaltadaId()"
+      [radioKm]="alcanceKm()"
+      [mostrarRadio]="verAlcance()"
+      [rellenoInicio]="rellenoInicio()"
+      [rellenoFin]="rellenoFin()"
+      [interactivo]="false"
+      alto="fill"
+      ariaLabel="Mapa de estaciones ferroviarias"
+      (markerClick)="onMarkerClick($event)"
+      (markerHover)="resaltar($event)"
+    />
+
+    <div class="mapa-pleno__capa">
+      <div class="map-panel ink mapa-pleno__izq">
+        <div class="map-panel__head">
+          <h4>Estaciones disponibles</h4>
+          <p>
+            @if (cargando()) {
+              Cargando catálogo…
+            } @else {
+              {{ estaciones().length }} estaciones registradas.
+            }
+          </p>
+        </div>
+
+        <div class="map-panel__list">
+          @if (cargando()) {
+            @for (i of [1, 2, 3]; track i) {
+              <div class="skeleton estacion__skeleton" aria-hidden="true"></div>
+            }
+          } @else if (estaciones().length === 0) {
+            <p class="map-ficha__vacio">
+              El catálogo de PeruRail aún no se ha sincronizado. Vuelve a intentarlo en unos minutos.
+            </p>
+          } @else {
+            @for (estacion of estaciones(); track estacion.est_id_estacion) {
+              <button
+                type="button"
+                class="punto-card"
+                [class.is-active]="estacionActivaId() === estacion.est_id_estacion"
+                [attr.aria-pressed]="estacionActivaId() === estacion.est_id_estacion"
+                (click)="seleccionar(estacion)"
+                (mouseenter)="resaltar(estacion.est_id_estacion)"
+                (mouseleave)="resaltar(null)"
+                (focus)="resaltar(estacion.est_id_estacion)"
+                (blur)="resaltar(null)"
+              >
+                <app-image-slot
+                  class="punto-card__foto"
+                  [src]="estacion.est_imagen_url"
+                  alt=""
+                  [fill]="true"
+                  icon="train"
+                  [iconSize]="26"
+                />
+                <span class="punto-card__cab">
+                  <span class="punto-card__code code">{{ estacion.est_codigo }}</span>
+                  @if (estacion.est_badge) {
+                    <span class="tag tag-accent">{{ estacion.est_badge }}</span>
+                  }
+                </span>
+                <span class="punto-card__nombre">{{ estacion.est_nombre }}</span>
+                <span class="punto-card__meta num">
+                  <span>{{ estacion.est_region }}</span>
+                  <span class="dot" aria-hidden="true"></span>
+                  <span>{{ estacion.est_altitud_msnm }} msnm</span>
+                </span>
+                <span class="punto-card__datos num">
+                  <span><strong>{{ estacion.est_andenes }}</strong><span>andenes</span></span>
+                  <span><strong>{{ estacion.zonasCount ?? 0 }}</strong><span>zonas a pie</span></span>
+                  <span><strong>{{ estacion.serviciosCount ?? 0 }}</strong><span>servicios</span></span>
+                </span>
+              </button>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="map-ficha ink mapa-pleno__der">
+        @if (wizard.estacion(); as elegida) {
+          <div class="map-ficha__cab">
+            <h4>{{ elegida.est_nombre }}</h4>
+            <span>{{ elegida.est_region }} · {{ elegida.est_altitud_msnm }} msnm</span>
+          </div>
+          <dl class="ficha num">
+            <dt>Andenes</dt>
+            <dd>{{ elegida.est_andenes }}</dd>
+            <dt>Zonas a pie</dt>
+            <dd>{{ elegida.zonasCount ?? 0 }}</dd>
+            <dt>Servicios</dt>
+            <dd>{{ elegida.serviciosCount ?? 0 }}</dd>
+          </dl>
+        } @else {
+          <div class="map-ficha__cab">
+            <h4>Elige tu punto de partida</h4>
+          </div>
+          <p class="map-ficha__vacio">
+            Toca una tarjeta o un punto del mapa. Se marcará hasta dónde llegas a pie con los minutos que declaraste.
+          </p>
+        }
+
+        <div class="map-ficha__control">
+          <app-switch
+            label="Alcance a pie"
+            [hint]="'Círculo de ~' + alcanceKm() + ' km de ida, estimado a 4 km/h'"
+            [checked]="verAlcance()"
+            (checkedChange)="verAlcance.set($event)"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="paso-acciones">
+      <button type="button" class="btn btn-secondary" (click)="volver()">
+        <app-icon name="chevron-left" [size]="16" />
+        Volver a preferencias
+      </button>
+      <button type="button" class="btn btn-primary" [disabled]="!wizard.estacionSeleccionada()" (click)="continuar()">
+        Ver alternativas turísticas
+        <app-icon name="arrow-right" [size]="16" class="btn-arrow" />
+      </button>
+    </div>
+  </div>
+</section>

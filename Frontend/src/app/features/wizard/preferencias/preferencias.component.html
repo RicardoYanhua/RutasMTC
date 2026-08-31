@@ -1,0 +1,167 @@
+<section #panel class="container preferencias">
+  <header class="paso-head stagger-item">
+    <h1>Tus preferencias turísticas</h1>
+    <p>
+      Con esto el sistema descarta las zonas que no se ajustan a lo que buscas ni al tiempo que tienes para caminar.
+    </p>
+  </header>
+
+  <div class="preferencias__grid">
+    <div class="preferencias__form">
+      <div class="bloque stagger-item">
+        <div class="bloque__head">
+          <h3>Qué te interesa</h3>
+          <p>Elige una o varias. Las tarjetas sin elegir se ven en blanco y negro.</p>
+        </div>
+
+        <div class="interes-grid" role="group" aria-label="Categorías de interés">
+          @for (categoria of categorias; track categoria) {
+            <button
+              type="button"
+              class="interes"
+              [class.is-active]="interesActivo(categoria)"
+              [attr.aria-pressed]="interesActivo(categoria)"
+              (click)="alternarInteres(categoria)"
+            >
+              <span class="interes__foto">
+                <!-- `app-image-slot` resuelve la ruta /uploads, y si no hay foto
+                     (o falla) cae a la silueta de la categoría. -->
+                <app-image-slot
+                  [src]="imagenInteres(categoria)"
+                  alt=""
+                  [fill]="true"
+                  [icon]="iconoCategoria(categoria)"
+                  [iconSize]="64"
+                />
+              </span>
+              <span class="interes__cuerpo">
+                <app-icon [name]="iconoCategoria(categoria)" [size]="20" [strokeWidth]="1.6" class="interes__icono" />
+                <span class="interes__nombre">{{ categoria }}</span>
+              </span>
+              <span class="interes__check" aria-hidden="true">
+                <app-icon name="check" [size]="13" [strokeWidth]="2.6" />
+              </span>
+            </button>
+          }
+        </div>
+
+        @if (wizard.intereses().length === 0) {
+          <p class="field-error preferencias__aviso">
+            <app-icon name="info" [size]="14" />
+            Elige al menos un interés para continuar.
+          </p>
+        }
+      </div>
+
+      <div class="bloque stagger-item">
+        <div class="bloque__head">
+          <h3>Esfuerzo máximo del recorrido</h3>
+          <p>Se descartan las zonas más exigentes que este nivel.</p>
+        </div>
+        <app-segmented
+          [options]="dificultades"
+          [value]="wizard.dificultadMax()"
+          ariaLabel="Esfuerzo máximo del recorrido"
+          (valueChange)="elegirDificultad($event)"
+        />
+        <p class="field-hint preferencias__nota">{{ notaDificultad() }}</p>
+      </div>
+
+      <div class="bloque stagger-item">
+        <div class="bloque__head">
+          <h3>Tiempo disponible para caminar</h3>
+          <p>Cuenta la ida y la vuelta completas hasta volver a la estación.</p>
+        </div>
+
+        <div class="rango">
+          <div class="rango__lectura">
+            <strong class="rango__valor num">{{ horasLegibles() }}</strong>
+            <span class="rango__apoyo num">≈ {{ alcanceKm() }} km de ida a 4 km/h</span>
+          </div>
+          <input
+            id="minutosMax"
+            name="minutosMax"
+            type="range"
+            class="range"
+            min="30"
+            max="240"
+            step="15"
+            [value]="wizard.minutosMax()"
+            [style.--range-pct]="progresoRango() + '%'"
+            aria-label="Minutos disponibles para caminar"
+            (input)="onMinutosChange($any($event.target).value)"
+          />
+          <div class="rango__escala num" aria-hidden="true">
+            <span>30 min</span>
+            <span>1 h</span>
+            <span>2 h</span>
+            <span>3 h</span>
+            <span>4 h</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bloque stagger-item">
+        <div class="bloque__head">
+          <h3>Fecha del viaje</h3>
+          <p>Define el pronóstico del SENAMHI y los horarios que se consultan.</p>
+        </div>
+        <div class="field preferencias__fecha">
+          <label for="fecha">Fecha de salida</label>
+          <input
+            id="fecha"
+            name="fecha"
+            type="date"
+            class="input num"
+            [class.is-invalid]="errorFecha()"
+            [min]="hoy"
+            [value]="wizard.fecha()"
+            [attr.aria-invalid]="errorFecha() ? 'true' : null"
+            aria-describedby="fecha-msg"
+            (change)="onFechaChange($any($event.target).value)"
+          />
+          @if (errorFecha(); as error) {
+            <span id="fecha-msg" class="field-error">
+              <app-icon name="warning" [size]="13" />
+              {{ error }}
+            </span>
+          } @else {
+            <span id="fecha-msg" class="field-hint">Solo se aceptan fechas de hoy en adelante.</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <aside class="preferencias__resumen stagger-item">
+      <div class="resumen ink">
+        <div class="resumen__head">
+          <h4>Resumen del filtro</h4>
+          <app-icon name="sliders" [size]="17" />
+        </div>
+
+        <div class="resumen__conteo">
+          <span #conteo class="resumen__conteo-num num">{{ zonasQueCalifican() ?? '·' }}</span>
+          <span class="resumen__conteo-txt">
+            {{ zonasQueCalifican() === 1 ? 'zona califica' : 'zonas califican' }} con este filtro
+          </span>
+        </div>
+
+        <dl class="ficha">
+          <dt>Intereses</dt>
+          <dd>{{ wizard.intereses().length ? wizard.intereses().join(', ') : 'Sin elegir' }}</dd>
+          <dt>Esfuerzo</dt>
+          <dd>{{ wizard.dificultadMax() }}</dd>
+          <dt>Caminata</dt>
+          <dd class="num">{{ horasLegibles() }}</dd>
+          <dt>Fecha</dt>
+          <dd class="num">{{ wizard.fecha() }}</dd>
+        </dl>
+
+        <button type="button" class="btn btn-primary btn-block" [disabled]="!puedeContinuar()" (click)="continuar()">
+          Elegir estación
+          <app-icon name="arrow-right" [size]="16" class="btn-arrow" />
+        </button>
+      </div>
+    </aside>
+  </div>
+</section>

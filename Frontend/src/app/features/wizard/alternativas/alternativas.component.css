@@ -1,0 +1,157 @@
+.alternativas__head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--space-4); flex-wrap: wrap; max-width: none;
+  margin-bottom: var(--space-6);
+}
+.alternativas__head > div { max-width: 56ch; }
+
+/* ── condiciones del día (banda de tinta) ────────────────────────────────── */
+
+/* Dos lecturas del día en una sola banda oscura y baja. Antes eran dos paneles
+   blancos del tamaño de una tarjeta y competían con las zonas, que son el
+   asunto real del paso. */
+.condiciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: var(--space-12);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.condiciones__bloque {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  background: var(--ink-950);
+}
+.condiciones__fuente {
+  font: 600 10.5px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--acc-300);
+}
+.condiciones__lectura { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; color: var(--acc-300); }
+.condiciones__temp {
+  font-family: var(--font-display); font-size: 32px; font-weight: 500;
+  letter-spacing: -0.04em; line-height: 1; color: #fff;
+}
+.condiciones__cond { font-size: 13.5px; color: rgba(255, 255, 255, 0.62); }
+.condiciones__nulo { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.55); }
+
+.condiciones__datos {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3);
+  padding-top: var(--space-3); border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.condiciones__datos > span { display: flex; flex-direction: column; gap: 1px; }
+.condiciones__datos strong {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.1; color: #fff;
+}
+.condiciones__datos > span > span { font-size: 10.5px; color: rgba(255, 255, 255, 0.5); }
+
+.condiciones__aviso {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  margin: 0; padding: var(--space-3) var(--space-4);
+  background: rgba(229, 55, 42, 0.14); color: var(--acc-200);
+  border-radius: var(--r-sm); font-size: 12.5px; line-height: 1.45;
+}
+.condiciones__aviso app-icon { flex: none; margin-top: 1px; }
+
+/* ── zonas que califican ─────────────────────────────────────────────────── */
+
+.alternativas__titulo {
+  display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+.alternativas__titulo h2 { margin: 0; }
+.alternativas__titulo p { margin: 0; width: 100%; color: var(--ink-500); font-size: 14.5px; }
+
+.zonas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.alternativas__skeleton { height: 380px; border-radius: var(--r-md); }
+
+/* Tarjeta de zona: la fotografía cubre la tarjeta entera, a MUY baja opacidad
+   sobre tinta. No va desenfocada (eso ensucia y encarece el pintado): lo que
+   baja es el alfa, así que la foto se intuye y el texto se lee limpio. Al
+   seleccionar, la imagen sube de opacidad; el color de la foto ES el estado. */
+.zona-card {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: space-between;
+  gap: var(--space-6);
+  min-height: 380px; padding: var(--space-5);
+  overflow: hidden; cursor: pointer; text-align: left;
+  font-family: var(--font-body);
+  background: var(--ink-950);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: border-color .25s var(--ease-io), transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.zona-card:hover { transform: translateY(-3px); box-shadow: var(--sh-lg); border-color: var(--ink-400); }
+.zona-card:focus-visible { outline: none; box-shadow: var(--ring); }
+.zona-card:active { transform: translateY(0) scale(0.99); }
+
+.zona-card__foto { z-index: 0; }
+.zona-card__foto img {
+  opacity: 0.26;
+  transition: opacity .35s var(--ease-io), transform .6s var(--ease);
+}
+.zona-card:hover .zona-card__foto img { opacity: 0.4; transform: scale(1.03); }
+
+/* Velo inferior: garantiza el contraste del texto sobre cualquier fotografía. */
+.zona-card__velo {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(to top, rgba(16, 14, 13, 0.92) 8%, rgba(16, 14, 13, 0.35) 52%, rgba(16, 14, 13, 0.55) 100%);
+}
+.zona-card__cab, .zona-card__cuerpo { position: relative; z-index: 2; }
+
+.zona-card__cab { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.zona-card__cab .tag-accent { background: rgba(229, 55, 42, 0.22); color: var(--acc-200); }
+.zona-card__check {
+  display: grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  color: transparent;
+  transition: background-color .25s var(--ease-io), border-color .25s var(--ease-io), color .2s var(--ease-io);
+}
+
+.zona-card__cuerpo { display: flex; flex-direction: column; gap: var(--space-2); }
+.zona-card__nombre {
+  font-family: var(--font-display); font-size: 21px; font-weight: 600;
+  letter-spacing: -0.025em; line-height: 1.15; color: #fff; text-wrap: balance;
+}
+.zona-card__desc {
+  /* Tres líneas máximo: las descripciones largas no deben descuadrar la retícula. */
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.68);
+}
+.zona-card__datos {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);
+  margin-top: var(--space-2); padding-top: var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+.zona-card__datos > span { display: flex; flex-direction: column; gap: 1px; }
+.zona-card__datos strong {
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.15; color: #fff;
+}
+.zona-card__datos > span > span { font-size: 10.5px; color: rgba(255, 255, 255, 0.55); }
+
+.zona-card.is-active { border-color: var(--acc-500); box-shadow: var(--sh-acc); }
+.zona-card.is-active .zona-card__foto img { opacity: 0.52; }
+.zona-card.is-active .zona-card__velo {
+  background: linear-gradient(to top, rgba(90, 18, 12, 0.94) 8%, rgba(16, 14, 13, 0.42) 56%, rgba(16, 14, 13, 0.55) 100%);
+}
+.zona-card.is-active .zona-card__check { background: var(--acc-600); border-color: var(--acc-500); color: #fff; }
+
+@media (max-width: 1080px) {
+  .zonas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .condiciones { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .zonas-grid { grid-template-columns: 1fr; }
+  .zona-card { min-height: 320px; }
+}

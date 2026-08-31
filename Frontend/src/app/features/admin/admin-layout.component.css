@@ -1,0 +1,14 @@
+/* El nombre queda a la izquierda del avatar: se lee primero la persona y luego
+   el disco, no al revés. */
+.admin-user__name { text-align: right; }
+
+@media (max-width: 480px) {
+  .admin-user__name { display: none; }
+}
+
+/* Candado junto a un módulo que el rol solo puede consultar. Va al final del
+   renglón para que no compita con el icono de la sección. */
+.admin-sidebar__candado {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.32) !important;
+}

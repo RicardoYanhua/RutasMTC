@@ -1,0 +1,130 @@
+/* El login vive en su propia ruta (/admin/login) pero se presenta como popup
+   sobre el sitio público: el header público queda visible (ver
+   `App.calcularEsAdmin`) y esta sección se fija sobre toda la ventana con un
+   scrim, en vez de comportarse como otra pantalla en blanco. */
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(10, 18, 16, 0.42);
+  backdrop-filter: blur(8px) saturate(120%);
+  animation: login-in 0.2s var(--ease-io);
+  overflow-y: auto;
+}
+@keyframes login-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.login__panel {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: clamp(28px, 4vw, 40px);
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-lg);
+  animation: login-panel-in 0.3s var(--ease);
+}
+@keyframes login-panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login, .login__panel { animation: none; }
+}
+
+.login__close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--surface-2);
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink-500);
+  cursor: pointer;
+  transition: background-color .15s var(--ease-io), color .15s var(--ease-io);
+}
+.login__close:hover { background: var(--surface-3); color: var(--text); }
+.login__close:focus-visible { outline: none; box-shadow: var(--ring); }
+
+.login__brand { align-self: flex-start; }
+.login__intro h2 { font-size: 26px; margin-bottom: var(--space-2); }
+.login__intro p { margin: 0; font-size: 14px; color: var(--ink-500); }
+
+.login__panel form { display: flex; flex-direction: column; }
+.login__panel .field:last-of-type { margin-bottom: var(--space-6); }
+.login__volver { margin-top: var(--space-2); }
+
+/* Atajo de cuenta de prueba. Bloque temporal del proyecto: se retira cuando
+   existan cuentas reales (ver `rellenarDemo`). */
+.login__demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+}
+.login__demo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-600);
+}
+.login__demo-nota { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-500); }
+
+/* Un atajo por rol. Se listan desde la API (no incrustados en el bundle) para
+   que la lista siga a la base de datos: si se desactiva una cuenta, el atajo
+   desaparece solo. */
+.login__roles { display: flex; flex-direction: column; gap: 6px; }
+.login__rol {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px var(--space-3);
+  text-align: left;
+  font-family: var(--font-body);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: border-color .18s var(--ease-io), background-color .18s var(--ease-io), transform .2s var(--ease);
+}
+.login__rol:hover:not(:disabled) { border-color: var(--ink-300); background: var(--surface); transform: translateY(-1px); }
+.login__rol:focus-visible { outline: none; box-shadow: var(--ring); }
+.login__rol:disabled { opacity: 0.55; cursor: not-allowed; }
+.login__rol-marca {
+  display: grid; place-items: center; flex: none;
+  width: 32px; height: 32px;
+  border-radius: var(--r-xs);
+  background: var(--ink-900); color: #fff;
+}
+.login__rol-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.login__rol-texto strong {
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  letter-spacing: -0.015em; color: var(--text);
+}
+.login__rol-texto > span { font-size: 11.5px; line-height: 1.35; color: var(--ink-500); }
+.login__rol-usuario { font-size: 10.5px; color: var(--ink-400) !important; }
+.login__rol-flecha { margin-left: auto; flex: none; color: var(--ink-400); }
+.login__rol:hover:not(:disabled) .login__rol-flecha { color: var(--acc-700); }

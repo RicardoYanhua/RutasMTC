@@ -1,0 +1,284 @@
+<button type="button" class="admin-volver" (click)="volver()">
+  <app-icon name="chevron-left" [size]="15" />
+  Estaciones ferroviarias
+</button>
+
+<div class="admin-toolbar">
+  <div>
+    <h1>{{ titulo() }}</h1>
+    <p>
+      Los datos de esta ficha alimentan el planificador: la estación aparece en el mapa, sus coordenadas fijan el
+      encuadre y la fotografía es el fondo de su tarjeta en el paso de selección.
+    </p>
+  </div>
+</div>
+
+@if (cargando()) {
+  <div class="admin-form" aria-busy="true">
+    <div class="admin-form__grupo">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+} @else {
+  <form class="admin-form" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Identidad</h3>
+        <p>Cómo se llama la estación y con qué código la reconoce el sistema.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="codigo">Código</label>
+          <input
+            id="codigo"
+            class="input code"
+            type="text"
+            formControlName="codigo"
+            maxlength="10"
+            placeholder="OLL"
+            autocapitalize="characters"
+            [class.is-invalid]="form.controls.codigo.touched && form.controls.codigo.invalid"
+          />
+          @if (form.controls.codigo.touched && form.controls.codigo.invalid) {
+            <span class="field-error">
+              <app-icon name="warning" [size]="13" />
+              De 2 a 10 letras o dígitos, sin espacios ni signos.
+            </span>
+          } @else {
+            <span class="field-hint">Identificador corto y único, en mayúsculas.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="nombre">Nombre de la estación</label>
+          <input
+            id="nombre"
+            class="input"
+            type="text"
+            formControlName="nombre"
+            maxlength="120"
+            placeholder="Ollantaytambo"
+            [class.is-invalid]="form.controls.nombre.touched && form.controls.nombre.invalid"
+          />
+          @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+            <span class="field-error">
+              <app-icon name="warning" [size]="13" />
+              Escribe entre 3 y 120 caracteres.
+            </span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="region">Región o corredor</label>
+          <input
+            id="region"
+            class="input"
+            type="text"
+            formControlName="region"
+            maxlength="100"
+            placeholder="Cusco · Valle Sagrado"
+            [class.is-invalid]="form.controls.region.touched && form.controls.region.invalid"
+          />
+          <span class="field-hint">Se muestra bajo el nombre en el mapa y en las tarjetas.</span>
+        </div>
+
+        <div class="field">
+          <label for="badge">Distintivo (opcional)</label>
+          <input
+            id="badge"
+            class="input"
+            type="text"
+            formControlName="badge"
+            maxlength="60"
+            placeholder="Mayor afluencia"
+          />
+          <span class="field-hint">Etiqueta corta que destaca la estación. Déjalo vacío si no aplica.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Fotografía de la estación</h3>
+        <p>
+          Se usa como fondo de la tarjeta en el paso de selección del planificador. Funciona mejor un plano general
+          del andén o de la fachada que un detalle. Máximo 4 MB en JPG, PNG, WebP o AVIF.
+        </p>
+      </div>
+
+      <div class="subida">
+        <app-image-slot
+          class="subida__vista"
+          [src]="imagenUrl()"
+          [alt]="form.controls.nombre.value || 'Estación ferroviaria'"
+          ratio="4 / 3"
+          icon="train"
+          [iconSize]="28"
+        />
+
+        <div class="subida__panel">
+          <div class="subida__acciones">
+            <input
+              id="imagen"
+              class="subida__input"
+              type="file"
+              [accept]="formatos"
+              [disabled]="subiendo()"
+              (change)="onArchivo($event)"
+            />
+            <label for="imagen" class="btn btn-secondary btn-sm subida__boton">
+              <app-icon name="image" [size]="15" />
+              {{ subiendo() ? 'Subiendo…' : imagenUrl() ? 'Cambiar imagen' : 'Elegir imagen' }}
+            </label>
+            @if (imagenUrl()) {
+              <button type="button" class="btn btn-danger btn-sm" [disabled]="subiendo()" (click)="quitarImagen()">
+                <app-icon name="trash" [size]="15" />
+                Quitar
+              </button>
+            }
+          </div>
+
+          @if (errorImagen(); as error) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> {{ error }}</span>
+          } @else if (imagenUrl(); as ruta) {
+            <span class="subida__ruta">
+              <app-icon name="check-circle" [size]="14" />
+              {{ ruta }}
+            </span>
+          } @else {
+            <span class="field-hint">
+              Sin imagen, la tarjeta del planificador usa la marca de estación del sistema.
+            </span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Datos de operación</h3>
+        <p>Altitud y andenes se muestran al viajero al elegir su punto de partida.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="altitudMsnm">Altitud (msnm)</label>
+          <input
+            id="altitudMsnm"
+            class="input num"
+            type="number"
+            formControlName="altitudMsnm"
+            min="0"
+            max="6000"
+            placeholder="2792"
+            [class.is-invalid]="form.controls.altitudMsnm.touched && form.controls.altitudMsnm.invalid"
+          />
+          @if (form.controls.altitudMsnm.touched && form.controls.altitudMsnm.invalid) {
+            <span class="field-error">
+              <app-icon name="warning" [size]="13" />
+              Entre 0 y 6000 metros sobre el nivel del mar.
+            </span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="andenes">Andenes</label>
+          <input
+            id="andenes"
+            class="input num"
+            type="number"
+            formControlName="andenes"
+            min="1"
+            max="30"
+            [class.is-invalid]="form.controls.andenes.touched && form.controls.andenes.invalid"
+          />
+          @if (form.controls.andenes.touched && form.controls.andenes.invalid) {
+            <span class="field-error">
+              <app-icon name="warning" [size]="13" />
+              Entre 1 y 30 andenes.
+            </span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Ubicación</h3>
+        <p>
+          Coordenadas decimales. Comprueba en el mapa que el punto cae donde debe: un signo cambiado es el error más
+          común y el más difícil de ver leyendo cifras.
+        </p>
+      </div>
+
+      <div class="estacion-ubicacion">
+        <div class="admin-form__grid">
+          <div class="field">
+            <label for="latitud">Latitud</label>
+            <input
+              id="latitud"
+              class="input num"
+              type="number"
+              formControlName="latitud"
+              step="0.000001"
+              placeholder="-13.258300"
+              [class.is-invalid]="form.controls.latitud.touched && form.controls.latitud.invalid"
+            />
+            @if (form.controls.latitud.touched && form.controls.latitud.invalid) {
+              <span class="field-error">
+                <app-icon name="warning" [size]="13" />
+                En Perú la latitud es negativa, entre -19 y 0.
+              </span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="longitud">Longitud</label>
+            <input
+              id="longitud"
+              class="input num"
+              type="number"
+              formControlName="longitud"
+              step="0.000001"
+              placeholder="-72.263600"
+              [class.is-invalid]="form.controls.longitud.touched && form.controls.longitud.invalid"
+            />
+            @if (form.controls.longitud.touched && form.controls.longitud.invalid) {
+              <span class="field-error">
+                <app-icon name="warning" [size]="13" />
+                En Perú la longitud está entre -82 y -68.
+              </span>
+            }
+          </div>
+        </div>
+
+        @if (marcadorPrevio().length) {
+          <app-leaflet-map
+            class="estacion-ubicacion__mapa"
+            [markers]="marcadorPrevio()"
+            [seleccionadoId]="1"
+            [zoom]="13"
+            alto="compact"
+            ariaLabel="Previsualización de la ubicación de la estación"
+          />
+        } @else {
+          <div class="estacion-ubicacion__vacio">
+            <app-icon name="crosshair" [size]="22" />
+            <span>Escribe latitud y longitud para ver el punto en el mapa.</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <div class="admin-form__acciones">
+      <button type="button" class="btn btn-secondary" (click)="volver()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="enviando() || subiendo()">
+        <app-icon name="check" [size]="16" />
+        {{ enviando() ? 'Guardando…' : esEdicion() ? 'Guardar cambios' : 'Crear estación' }}
+      </button>
+    </div>
+  </form>
+}

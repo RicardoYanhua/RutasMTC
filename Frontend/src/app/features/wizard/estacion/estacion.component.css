@@ -1,0 +1,6 @@
+/* El mapa va a sangre, así que el margen del paso lo ponen sus bloques de
+   texto (que sí llevan `.container`), no la sección. */
+.estacion .paso-head { margin-bottom: var(--space-6); }
+.estacion .paso-acciones { margin-top: var(--space-8); }
+
+.estacion__skeleton { height: 132px; border-radius: var(--r-md); }

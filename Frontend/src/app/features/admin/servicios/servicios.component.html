@@ -1,0 +1,188 @@
+<div class="admin-toolbar">
+  <div>
+    <h1>Horarios y tarifas</h1>
+    <p>
+      @if (puedeEditar()) {
+        Servicios ferroviarios de PeruRail. Cada uno lleva su horario, su tiempo de tránsito y su tarifa de ida y vuelta.
+      } @else {
+        Servicios ferroviarios de PeruRail, en consulta. Solo esa entidad los da de alta o los modifica.
+      }
+    </p>
+  </div>
+  @if (puedeEditar()) {
+    <button type="button" class="btn btn-primary" (click)="nuevo()">
+      <app-icon name="plus" [size]="16" />
+      Nuevo servicio
+    </button>
+  } @else {
+    <span class="tag tag-neutral">
+      <app-icon name="lock" [size]="12" [strokeWidth]="2.2" />
+      Solo lectura
+    </span>
+  }
+</div>
+
+<div class="panel-cifras">
+  <div class="panel-cifra">
+    <app-icon name="ticket" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ servicios().length }}</strong>
+      <span>servicios</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="check-circle" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ publicados() }}</strong>
+      <span>publicados</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="route" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ rutasDistintas() }}</strong>
+      <span>rutas distintas</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="clock" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">{{ transitoMedio() }} min</strong>
+      <span>tránsito medio</span>
+    </span>
+  </div>
+  <div class="panel-cifra">
+    <app-icon name="download" [size]="18" />
+    <span class="panel-cifra__texto">
+      <strong class="num">S/ {{ tarifaMedia() }}</strong>
+      <span>tarifa media</span>
+    </span>
+  </div>
+</div>
+
+<div class="filtros">
+  <label class="filtros__buscador">
+    <app-icon name="search" [size]="16" />
+    <span class="sr-only">Buscar servicio</span>
+    <input
+      type="search"
+      class="input"
+      placeholder="Buscar por servicio o estación…"
+      [value]="busqueda()"
+      (input)="busqueda.set($any($event.target).value)"
+    />
+  </label>
+  <app-segmented
+    [options]="filtrosEstado"
+    [value]="filtroEstado()"
+    ariaLabel="Filtrar por estado"
+    (valueChange)="filtroEstado.set($event)"
+  />
+  <span class="filtros__conteo num">{{ visibles().length }} de {{ servicios().length }}</span>
+</div>
+
+@if (cargando()) {
+  <div class="rejilla" aria-hidden="true">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="skeleton servicio-skeleton"></div>
+    }
+  </div>
+} @else if (visibles().length === 0) {
+  <div class="empty-state">
+    <span class="empty-state__icon"><app-icon name="ticket" [size]="24" /></span>
+    <h3>{{ servicios().length === 0 ? 'Aún no hay servicios' : 'Ningún servicio coincide' }}</h3>
+    <p>
+      {{
+        servicios().length === 0
+          ? 'Usa "Nuevo servicio" para registrar el primer horario con su tarifa.'
+          : 'Prueba con otro texto de búsqueda o cambia el filtro de estado.'
+      }}
+    </p>
+  </div>
+} @else {
+  <div class="rejilla rejilla--ancha">
+    @for (servicio of visibles(); track servicio.est_id_servicio) {
+      <article class="registro" [class.registro--baja]="!servicio.est_serv_activo">
+        <div class="registro__cuerpo">
+          <div class="registro__cab">
+            <span class="registro__code code">Servicio</span>
+            <app-estado-registro
+              [activo]="servicio.est_serv_activo"
+              [publicado]="servicio.est_serv_publicado"
+              genero="m"
+            />
+          </div>
+          <h3 class="registro__nombre">{{ servicio.est_nombre_servicio }}</h3>
+
+          <!-- El trayecto, no dos celdas sueltas: origen y destino se leen como
+               un recorrido y esa es la información real del servicio. -->
+          <p class="servicio-trayecto">
+            <span>{{ servicio.origenNombre }}</span>
+            <app-icon name="arrow-right" [size]="14" />
+            <span>{{ servicio.destinoNombre }}</span>
+          </p>
+
+          <div class="servicio-horario num">
+            <div>
+              <span>Salida</span>
+              <strong>{{ servicio.est_hora_salida }}</strong>
+            </div>
+            <span class="servicio-horario__linea" aria-hidden="true">
+              <span>{{ servicio.est_minutos_transito }} min</span>
+            </span>
+            <div>
+              <span>Retorno</span>
+              <strong>{{ servicio.est_hora_retorno }}</strong>
+            </div>
+          </div>
+
+          <div class="registro__datos num">
+            <div><strong>S/ {{ servicio.est_precio }}</strong><span>ida y vuelta</span></div>
+            <div><strong>{{ servicio.est_minutos_transito }} min</strong><span>tránsito</span></div>
+            <div><strong>{{ servicio.est_moneda }}</strong><span>moneda</span></div>
+          </div>
+        </div>
+
+        @if (puedeEditar()) {
+          <div class="registro__acciones">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="editar(servicio)">
+              <app-icon name="edit" [size]="14" />
+              Editar
+            </button>
+            @if (servicio.est_serv_activo) {
+              <button type="button" class="btn btn-danger btn-sm" (click)="pedirBaja(servicio)">
+                <app-icon name="close" [size]="14" />
+                Dar de baja
+              </button>
+            } @else {
+              <button type="button" class="btn btn-secondary btn-sm" [disabled]="ocupado()" (click)="reactivar(servicio)">
+                <app-icon name="refresh" [size]="14" />
+                Reactivar
+              </button>
+            }
+          </div>
+        }
+      </article>
+    }
+  </div>
+}
+
+@if (aDarDeBaja(); as servicio) {
+  <div class="dialog-backdrop" (click)="aDarDeBaja.set(null)">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="baja-serv" (click)="$event.stopPropagation()">
+      <h3 id="baja-serv" class="dialog-title">Dar de baja el servicio</h3>
+      <p class="dialog-body">
+        <strong>{{ servicio.est_nombre_servicio }}</strong> ({{ servicio.origenNombre }} a
+        {{ servicio.destinoNombre }}) dejará de ofrecerse en el planificador. No se borra: puedes reactivarlo cuando
+        vuelva la temporada.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="aDarDeBaja.set(null)">Cancelar</button>
+        <button type="button" class="btn btn-danger" [disabled]="ocupado()" (click)="confirmarBaja()">
+          <app-icon name="close" [size]="15" />
+          {{ ocupado() ? 'Guardando…' : 'Dar de baja' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

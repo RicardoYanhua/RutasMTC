@@ -1,0 +1,236 @@
+@if (cargando()) {
+  <div class="container informe__cargando" role="status">
+    <div class="skeleton skeleton-line w-40"></div>
+    <div class="skeleton informe__skeleton-doc"></div>
+    <p class="text-muted">Generando el informe turístico…</p>
+  </div>
+} @else if (informe(); as inf) {
+  <div class="container informe__barra no-imprimir">
+    <div class="informe__estado">
+      <span class="tag tag-ok">
+        <app-icon name="check" [size]="12" [strokeWidth]="2.4" />
+        Informe generado
+      </span>
+      <span class="code text-muted">{{ inf.codigo }}</span>
+    </div>
+    <div class="informe__botones">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="volverARuta()">
+        <app-icon name="chevron-left" [size]="15" />
+        Volver a la ruta
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" (click)="descargarPdf()">
+        <app-icon name="download" [size]="15" />
+        Descargar PDF
+      </button>
+    </div>
+  </div>
+
+  <article #documento class="container documento">
+    <!-- 1 · Cabecera: portada de la infografía, sobre tinta y con la foto de la zona -->
+    <header class="doc-portada ink ink--grano">
+      <app-image-slot
+        class="doc-portada__foto"
+        [src]="inf.zona.zon_imagen_url"
+        [alt]="'Fotografía de ' + inf.zona.zon_nombre"
+        [fill]="true"
+        [iconSize]="34"
+      />
+      <span class="doc-portada__velo" aria-hidden="true"></span>
+
+      <div class="doc-portada__texto">
+        <p class="eyebrow">Ministerio de Transportes y Comunicaciones</p>
+        <h1>Informe turístico peatonal</h1>
+        <p class="doc-portada__ruta">
+          <span>{{ inf.estacion.est_nombre }}</span>
+          <app-icon name="arrow-right" [size]="14" />
+          <span>{{ inf.zona.zon_nombre }}</span>
+          <app-icon name="arrow-right" [size]="14" />
+          <span>{{ inf.estacion.est_nombre }}</span>
+        </p>
+      </div>
+
+      <dl class="doc-portada__meta num">
+        <div><dt>Número</dt><dd class="code">{{ inf.codigo }}</dd></div>
+        <div><dt>Emitido</dt><dd>{{ inf.emitido }}</dd></div>
+        <div><dt>Fecha de viaje</dt><dd>{{ inf.fechaViaje }}</dd></div>
+      </dl>
+    </header>
+
+    <!-- 2 · Las cifras que resumen el viaje, en grande -->
+    <section class="doc-seccion" aria-labelledby="doc-cifras">
+      <h2 id="doc-cifras" class="doc-titulo">El viaje en cifras</h2>
+      <div class="doc-kpis num">
+        <div class="doc-kpi">
+          <app-icon name="walk" [size]="20" [strokeWidth]="1.6" />
+          <strong>{{ inf.ruta.distanciaTotalKm }}</strong>
+          <span>km a pie, ida y vuelta</span>
+        </div>
+        <div class="doc-kpi">
+          <app-icon name="clock" [size]="20" [strokeWidth]="1.6" />
+          <strong>{{ inf.ruta.tiempoTotalMin }}</strong>
+          <span>minutos caminando</span>
+        </div>
+        <div class="doc-kpi">
+          <app-icon name="mountain" [size]="20" [strokeWidth]="1.6" />
+          <strong>{{ inf.ruta.dificultadResultado }}</strong>
+          <span>esfuerzo del recorrido</span>
+        </div>
+        <div class="doc-kpi" [class.doc-kpi--acento]="!!inf.servicio">
+          <app-icon name="train" [size]="20" [strokeWidth]="1.6" />
+          <strong>{{ inf.servicio ? 'S/ ' + inf.servicio.est_precio : 'Sin dato' }}</strong>
+          <span>{{ inf.servicio ? 'tarifa ida y vuelta' : 'tramo en tren no registrado' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Cinta del día: la jornada completa leída de izquierda a derecha -->
+    <section class="doc-seccion" aria-labelledby="doc-jornada">
+      <h2 id="doc-jornada" class="doc-titulo">La jornada, de principio a fin</h2>
+      <ol class="cinta num">
+        @for (tramo of jornada(); track tramo.titulo) {
+          <li class="cinta__hito" [class.cinta__hito--tren]="tramo.tipo === 'tren'">
+            <span class="cinta__icono"><app-icon [name]="tramo.icono" [size]="16" [strokeWidth]="1.8" /></span>
+            @if (tramo.hora) {
+              <span class="cinta__hora">{{ tramo.hora }}</span>
+            }
+            <span class="cinta__titulo">{{ tramo.titulo }}</span>
+            <span class="cinta__detalle">{{ tramo.detalle }}</span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <!-- 4 · Tres fuentes, tres bloques: cada dato lleva su origen a la vista -->
+    <section class="doc-seccion" aria-labelledby="doc-fuentes">
+      <h2 id="doc-fuentes" class="doc-titulo">Qué aportó cada fuente</h2>
+      <div class="doc-fuentes">
+        <div class="doc-fuente">
+          <div class="doc-fuente__cab">
+            <app-icon [name]="iconoClima()" [size]="26" [strokeWidth]="1.5" />
+            <h3>SENAMHI</h3>
+          </div>
+          @if (inf.clima; as c) {
+            <p class="doc-fuente__titular num">{{ c.cli_temp }}°C · {{ c.cli_condicion }}</p>
+            <div class="doc-barras">
+              <div class="doc-barra">
+                <span class="doc-barra__nombre">Probabilidad de lluvia</span>
+                <span class="doc-barra__pista" aria-hidden="true">
+                  <span class="doc-barra__valor" [style.width.%]="c.cli_prob_lluvia"></span>
+                </span>
+                <span class="doc-barra__cifra num">{{ c.cli_prob_lluvia }}%</span>
+              </div>
+              <div class="doc-barra">
+                <span class="doc-barra__nombre">Índice UV</span>
+                <span class="doc-barra__pista" aria-hidden="true">
+                  <span class="doc-barra__valor" [style.width.%]="porcentajeUv(c.cli_uv_indice)"></span>
+                </span>
+                <span class="doc-barra__cifra num">{{ c.cli_uv_indice }}</span>
+              </div>
+            </div>
+            <dl class="ficha num">
+              <dt>Viento</dt><dd>{{ c.cli_viento_kmh }} km/h</dd>
+              <dt>Sensación</dt><dd>{{ c.cli_sensacion }}°C</dd>
+            </dl>
+            @if (c.cli_aviso) {
+              <p class="doc-aviso"><app-icon name="info" [size]="14" />{{ c.cli_aviso }}</p>
+            }
+          } @else {
+            <p class="text-muted">Pronóstico no disponible para la fecha del viaje.</p>
+          }
+        </div>
+
+        <div class="doc-fuente">
+          <div class="doc-fuente__cab">
+            <app-icon name="train" [size]="26" [strokeWidth]="1.5" />
+            <h3>PeruRail</h3>
+          </div>
+          @if (inf.servicio; as s) {
+            <p class="doc-fuente__titular">{{ s.est_nombre_servicio }}</p>
+            <dl class="ficha num">
+              <dt>Salida</dt><dd>{{ s.est_hora_salida }}</dd>
+              <dt>Tránsito</dt><dd>{{ s.est_minutos_transito }} min</dd>
+              <dt>Retorno</dt><dd>{{ s.est_hora_retorno }}</dd>
+              <dt>Tarifa ida y vuelta</dt><dd>S/ {{ s.est_precio }}</dd>
+            </dl>
+          } @else {
+            <p class="text-muted">Sin servicio ferroviario registrado para esta estación.</p>
+          }
+          <dl class="ficha num doc-fuente__extra">
+            <dt>Estación</dt><dd>{{ inf.estacion.est_nombre }}</dd>
+            <dt>Andenes</dt><dd>{{ inf.estacion.est_andenes }}</dd>
+            <dt>Altitud</dt><dd>{{ inf.estacion.est_altitud_msnm }} msnm</dd>
+          </dl>
+        </div>
+
+        <div class="doc-fuente">
+          <div class="doc-fuente__cab">
+            <app-icon [name]="iconoZona()" [size]="26" [strokeWidth]="1.5" />
+            <h3>Travel Group Perú</h3>
+          </div>
+          <p class="doc-fuente__titular">{{ inf.zona.zon_nombre }}</p>
+          <dl class="ficha num">
+            <dt>Categoría</dt><dd>{{ inf.zona.zon_categoria }}</dd>
+            <dt>Distancia de ida</dt><dd>{{ inf.zona.zon_distancia_km }} km</dd>
+            <dt>Horario</dt><dd>{{ inf.zona.zon_horario_atencion || 'No especificado' }}</dd>
+            <dt>Ingreso</dt><dd>{{ inf.zona.zon_ingreso || 'Libre' }}</dd>
+          </dl>
+          <p class="doc-fuente__nota">{{ inf.zona.zon_descripcion }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Recorrido a pie: escalera de hitos con el reloj acumulado -->
+    <section class="doc-seccion" aria-labelledby="doc-recorrido">
+      <h2 id="doc-recorrido" class="doc-titulo">Recorrido a pie, ida y vuelta</h2>
+      <ol class="escalera">
+        @for (paso of inf.ruta.timeline; track $index) {
+          <li class="escalera__paso" [class.escalera__paso--hito]="esHito(paso.tipo)">
+            <span class="escalera__marca" aria-hidden="true">
+              <app-icon [name]="iconoPaso(paso.tipo)" [size]="14" [strokeWidth]="1.9" />
+            </span>
+            <span class="escalera__min num">min {{ paso.acumuladoMin }}</span>
+            <span class="escalera__cuerpo">
+              <strong>{{ paso.titulo }}</strong>
+              <span>{{ paso.detalle }}</span>
+            </span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <!-- 6 · Preferencias registradas: por qué salió esta zona y no otra -->
+    <section class="doc-seccion" aria-labelledby="doc-filtro">
+      <h2 id="doc-filtro" class="doc-titulo">Filtro con el que se generó</h2>
+      <div class="doc-filtro">
+        <div class="doc-filtro__bloque">
+          <span>Intereses</span>
+          <div class="doc-filtro__chips">
+            @for (interes of inf.preferencias.intereses; track interes) {
+              <span class="tag tag-outline">{{ interes }}</span>
+            }
+          </div>
+        </div>
+        <div class="doc-filtro__bloque">
+          <span>Esfuerzo máximo</span>
+          <strong>{{ inf.preferencias.dificultadMax }}</strong>
+        </div>
+        <div class="doc-filtro__bloque">
+          <span>Caminata máxima</span>
+          <strong class="num">{{ inf.preferencias.minutosMax }} min</strong>
+        </div>
+      </div>
+    </section>
+
+    <footer class="doc-pie">
+      <p>Fuentes: SENAMHI (vía Open-Meteo), PeruRail y Travel Group Perú.</p>
+      <p>Documento informativo. Confirma horarios en el andén antes de abordar.</p>
+    </footer>
+  </article>
+
+  <div class="container informe__final no-imprimir">
+    <button type="button" class="btn btn-secondary" (click)="planificarOtro()">
+      <app-icon name="refresh" [size]="16" />
+      Planificar otro recorrido
+    </button>
+  </div>
+}

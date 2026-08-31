@@ -1,0 +1,10 @@
+.publicacion-skeleton { height: 336px; border-radius: var(--r-md); }
+
+/* Aviso en vez de botón: el gestor MTC no puede publicar lo que su dueño
+   retiró, y decirlo aquí ahorra el viaje hasta el error del servidor. */
+.publicacion-bloqueado {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%;
+  font-size: 12px; line-height: 1.3; color: var(--ink-500);
+}
+.publicacion-bloqueado app-icon { flex: none; }

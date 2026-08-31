@@ -1,0 +1,115 @@
+<section #panel class="container ruta">
+  <header class="paso-head stagger-item">
+    <h1>Ruta peatonal de ida y vuelta</h1>
+    <p>Un solo tramo: se camina hasta la zona y se regresa a la misma estación.</p>
+  </header>
+
+  <div class="ruta__cifras ink ink--grano stagger-item">
+    <div class="ruta__cifra">
+      <span>Distancia total</span>
+      <strong class="num">{{ distanciaTotal() }} km</strong>
+    </div>
+    <div class="ruta__cifra">
+      <span>Tiempo caminando</span>
+      <strong class="num">{{ tiempoTotal() }} min</strong>
+    </div>
+    <div class="ruta__cifra">
+      <span>Dificultad</span>
+      <strong>{{ wizard.zona()?.zon_dificultad }}</strong>
+    </div>
+    <div class="ruta__cifra">
+      <span>Vuelta al andén</span>
+      <strong>{{ wizard.estacion()?.est_nombre }}</strong>
+    </div>
+  </div>
+
+  <div class="ruta__grid">
+    <div class="stagger-item">
+      <h3 class="ruta__subtitulo">Diagrama del recorrido</h3>
+      <ol class="timeline">
+        @for (paso of timeline(); track $index) {
+          <li class="timeline__paso" [class.timeline__paso--hito]="esHito(paso.tipo)">
+            <span class="timeline__icono">
+              <app-icon [name]="iconoPaso(paso.tipo)" [size]="14" />
+            </span>
+            <div class="timeline__cuerpo">
+              <div class="timeline__cabecera">
+                <strong>{{ paso.titulo }}</strong>
+                <span class="timeline__min num">min {{ paso.acumuladoMin }}</span>
+              </div>
+              <p>{{ paso.detalle }}</p>
+            </div>
+          </li>
+        }
+      </ol>
+    </div>
+
+    <aside class="ruta__aside">
+      <div class="panel elev-sm stagger-item ruta__zona">
+        <app-image-slot
+          class="ruta__foto"
+          [src]="wizard.zona()?.zon_imagen_url ?? null"
+          [alt]="'Fotografía de ' + (wizard.zona()?.zon_nombre ?? 'la zona')"
+          ratio="16 / 10"
+          [iconSize]="26"
+        />
+        <h4>{{ wizard.zona()?.zon_nombre }}</h4>
+        <dl class="ficha">
+          <dt>Horario</dt>
+          <dd>{{ wizard.zona()?.zon_horario_atencion || 'No especificado' }}</dd>
+          <dt>Ingreso</dt>
+          <dd>{{ wizard.zona()?.zon_ingreso || 'Libre' }}</dd>
+          <dt>Categoría</dt>
+          <dd>{{ wizard.zona()?.zon_categoria }}</dd>
+        </dl>
+      </div>
+
+      <div class="panel elev-sm stagger-item ruta__clima-panel">
+        <div class="panel-head">
+          <h4>Clima durante el recorrido</h4>
+          <span class="tag tag-neutral">SENAMHI</span>
+        </div>
+        @if (cargandoClima()) {
+          <div class="skeleton skeleton-line w-60" aria-hidden="true"></div>
+        } @else if (clima(); as c) {
+          <div class="ruta__clima num">
+            <app-icon [name]="iconoClima()" [size]="30" [strokeWidth]="1.4" />
+            <span>{{ c.cli_temp }}°C, {{ c.cli_condicion }}</span>
+          </div>
+        } @else {
+          <p class="text-muted">Pronóstico no disponible.</p>
+        }
+      </div>
+
+      <div class="panel elev-sm stagger-item ruta__mapa-panel">
+        <div class="panel-head">
+          <h4>Punto de partida</h4>
+          <span class="tag tag-neutral num">{{ wizard.zona()?.zon_distancia_km }} km</span>
+        </div>
+        <app-leaflet-map
+          [markers]="marcadorEstacion()"
+          [seleccionadoId]="wizard.estacion()?.est_id_estacion ?? null"
+          [radioKm]="wizard.zona()?.zon_distancia_km ?? null"
+          [mostrarRadio]="true"
+          [zoom]="13"
+          alto="compact"
+          ariaLabel="Mapa del punto de partida y alcance de la zona"
+        />
+        <p class="field-hint">
+          El círculo marca la distancia de ida declarada para la zona. La traza exacta depende del sendero en campo.
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="paso-acciones">
+    <button type="button" class="btn btn-secondary" (click)="verOtrasZonas()">
+      <app-icon name="chevron-left" [size]="16" />
+      Ver otras zonas
+    </button>
+    <button type="button" class="btn btn-accent" (click)="generarInforme()">
+      <app-icon name="file-text" [size]="16" />
+      Generar informe turístico
+    </button>
+  </div>
+</section>

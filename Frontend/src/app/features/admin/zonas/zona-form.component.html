@@ -1,0 +1,251 @@
+<button type="button" class="admin-volver" (click)="volver()">
+  <app-icon name="chevron-left" [size]="15" />
+  Zonas turísticas
+</button>
+
+<div class="admin-toolbar">
+  <div>
+    <h1>{{ titulo() }}</h1>
+    <p>
+      Lo que registres aquí es lo que ven los viajeros en el planificador y en el informe. La imagen aparece también en
+      los destinos de la página pública.
+    </p>
+  </div>
+</div>
+
+@if (cargando()) {
+  <div class="admin-form" aria-busy="true">
+    <div class="admin-form__grupo">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+} @else {
+  <form class="admin-form" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Identidad</h3>
+        <p>Cómo se llama la zona y con qué estación se asocia.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field field--full">
+          <label for="nombre">Nombre de la zona</label>
+          <input
+            id="nombre"
+            type="text"
+            class="input"
+            formControlName="nombre"
+            placeholder="Sendero al mirador de Ollantaytambo"
+            [class.is-invalid]="form.controls.nombre.invalid && form.controls.nombre.touched"
+          />
+          @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Ingresa un nombre de 3 a 150 caracteres.</span>
+          } @else {
+            <span class="field-hint">Así aparecerá en el planificador y en el informe.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="estacionId">Estación asociada</label>
+          <select
+            id="estacionId"
+            class="input"
+            formControlName="estacionId"
+            [class.is-invalid]="form.controls.estacionId.invalid && form.controls.estacionId.touched"
+          >
+            <option [ngValue]="null" disabled>Selecciona una estación</option>
+            @for (estacion of estaciones(); track estacion.est_id_estacion) {
+              <option [ngValue]="estacion.est_id_estacion">{{ estacion.est_nombre }}</option>
+            }
+          </select>
+          @if (form.controls.estacionId.invalid && form.controls.estacionId.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Selecciona una estación.</span>
+          } @else {
+            <span class="field-hint">Es el punto de partida a pie.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="categoria">Categoría</label>
+          <select
+            id="categoria"
+            class="input"
+            formControlName="categoria"
+            [class.is-invalid]="form.controls.categoria.invalid && form.controls.categoria.touched"
+          >
+            <option [ngValue]="null" disabled>Selecciona una categoría</option>
+            @for (categoria of categorias; track categoria) {
+              <option [ngValue]="categoria">{{ categoria }}</option>
+            }
+          </select>
+          @if (form.controls.categoria.invalid && form.controls.categoria.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Selecciona una categoría.</span>
+          } @else {
+            <span class="field-hint">Filtra la zona según los intereses del viajero.</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Fotografía</h3>
+        <p>Máximo 4 MB en JPG, PNG, WebP o AVIF. Se guarda en la carpeta de subidas del servidor.</p>
+      </div>
+
+      <div class="subida">
+        <app-image-slot
+          class="subida__vista"
+          [src]="imagenUrl()"
+          [alt]="form.controls.nombre.value || 'Zona turística'"
+          ratio="4 / 3"
+          [iconSize]="28"
+        />
+
+        <div class="subida__panel">
+          <div class="subida__acciones">
+            <input
+              id="imagen"
+              class="subida__input"
+              type="file"
+              [accept]="formatos"
+              [disabled]="subiendo()"
+              (change)="onArchivo($event)"
+            />
+            <label for="imagen" class="btn btn-secondary btn-sm subida__boton">
+              <app-icon name="image" [size]="15" />
+              {{ subiendo() ? 'Subiendo…' : imagenUrl() ? 'Cambiar imagen' : 'Elegir imagen' }}
+            </label>
+            @if (imagenUrl()) {
+              <button type="button" class="btn btn-danger btn-sm" [disabled]="subiendo()" (click)="quitarImagen()">
+                <app-icon name="trash" [size]="15" />
+                Quitar
+              </button>
+            }
+          </div>
+
+          @if (errorImagen(); as error) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> {{ error }}</span>
+          } @else if (imagenUrl(); as ruta) {
+            <span class="subida__ruta">
+              <app-icon name="check-circle" [size]="14" />
+              {{ ruta }}
+            </span>
+          } @else {
+            <span class="field-hint">
+              Sin imagen, la zona se muestra con un marcador de posición en la web pública.
+            </span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Recorrido a pie</h3>
+        <p>Con estos valores el sistema decide si la zona cabe en el tiempo del viajero.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="distanciaKm">Distancia de ida (km)</label>
+          <input
+            id="distanciaKm"
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="20"
+            class="input num"
+            formControlName="distanciaKm"
+            [class.is-invalid]="form.controls.distanciaKm.invalid && form.controls.distanciaKm.touched"
+          />
+          @if (form.controls.distanciaKm.invalid && form.controls.distanciaKm.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Debe estar entre 0.1 y 20 km.</span>
+          } @else {
+            <span class="field-hint">Solo la ida. El sistema duplica para la vuelta.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="minutosIdaVuelta">Minutos ida y vuelta</label>
+          <input
+            id="minutosIdaVuelta"
+            type="number"
+            step="5"
+            min="5"
+            max="480"
+            class="input num"
+            formControlName="minutosIdaVuelta"
+            [class.is-invalid]="form.controls.minutosIdaVuelta.invalid && form.controls.minutosIdaVuelta.touched"
+          />
+          @if (form.controls.minutosIdaVuelta.invalid && form.controls.minutosIdaVuelta.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Debe estar entre 5 y 480 minutos.</span>
+          } @else {
+            <span class="field-hint">Tiempo total caminando, ida y vuelta.</span>
+          }
+        </div>
+
+        <div class="field field--full">
+          <label for="dificultad">Dificultad</label>
+          <select
+            id="dificultad"
+            class="input"
+            formControlName="dificultad"
+            [class.is-invalid]="form.controls.dificultad.invalid && form.controls.dificultad.touched"
+          >
+            <option [ngValue]="null" disabled>Selecciona la dificultad</option>
+            @for (dificultad of dificultades; track dificultad) {
+              <option [ngValue]="dificultad">{{ dificultad }}</option>
+            }
+          </select>
+          @if (form.controls.dificultad.invalid && form.controls.dificultad.touched) {
+            <span class="field-error"><app-icon name="warning" [size]="13" /> Selecciona la dificultad.</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-form__grupo">
+      <div class="admin-form__grupo-head">
+        <h3>Visita</h3>
+        <p>Datos prácticos que se imprimen en el informe del viajero.</p>
+      </div>
+
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="horarioAtencion">Horario de visita</label>
+          <input id="horarioAtencion" type="text" class="input" formControlName="horarioAtencion" placeholder="08:00 a 17:00" />
+          <span class="field-hint">Déjalo vacío si no aplica.</span>
+        </div>
+
+        <div class="field">
+          <label for="ingreso">Ingreso</label>
+          <input id="ingreso" type="text" class="input" formControlName="ingreso" placeholder="Libre o S/ 10" />
+          <span class="field-hint">Si se deja vacío se registra como Libre.</span>
+        </div>
+
+        <div class="field field--full">
+          <label for="descripcion">Descripción</label>
+          <textarea
+            id="descripcion"
+            class="input"
+            formControlName="descripcion"
+            rows="4"
+            placeholder="Qué encuentra el visitante al llegar y qué conviene saber antes de salir."
+          ></textarea>
+          <span class="field-hint">Se muestra en la tarjeta de la zona dentro del planificador.</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="admin-form__acciones">
+      <button type="button" class="btn btn-secondary" (click)="volver()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="enviando() || subiendo()">
+        <app-icon name="check" [size]="16" />
+        {{ enviando() ? 'Guardando…' : esEdicion() ? 'Guardar cambios' : 'Crear zona' }}
+      </button>
+    </div>
+  </form>
+}

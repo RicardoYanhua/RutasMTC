@@ -1,0 +1,265 @@
+<div #root class="landing">
+  <!-- 1 · Hero a pantalla completa: el tren corre sobre papel, el titular a la izquierda -->
+  <section #hero class="hero">
+    <app-hero-scene #escena />
+    <div class="container hero__grid">
+      <div class="hero__contenido">
+        <p class="eyebrow hero__item">Ministerio de Transportes y Comunicaciones</p>
+        <h1 class="hero__item">Camina el Perú desde el andén.</h1>
+        <p class="lede hero__item">
+          Elige intereses y estación de salida. Recibes una ruta peatonal de ida y vuelta con clima, horario y tarifa.
+        </p>
+        <div class="hero__cta hero__item">
+          <button type="button" class="btn btn-primary" (click)="planificar()">
+            Planificar ruta
+            <app-icon name="arrow-right" [size]="16" class="btn-arrow" />
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="irA('como-funciona')">Ver cómo funciona</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · Cifras reales del catálogo, contadas al entrar en pantalla -->
+  <section class="container cifras" data-reveal-group>
+    <div class="cifras__panel ink ink--grano">
+      <div class="cifra reveal">
+        <strong class="num" data-cifra="estaciones">0</strong>
+        <span>Estaciones ferroviarias</span>
+      </div>
+      <div class="cifra reveal">
+        <strong class="num" data-cifra="zonas">0</strong>
+        <span>Zonas turísticas registradas</span>
+      </div>
+      <div class="cifra reveal">
+        <strong class="num" data-cifra="regiones">0</strong>
+        <span>Regiones cubiertas</span>
+      </div>
+      <div class="cifra reveal">
+        <strong class="num" data-cifra="fuentes">0</strong>
+        <span>Fuentes sincronizadas</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · Destinos: bento asimétrico con huecos de imagen -->
+  <section id="destinos" class="container section" data-reveal-group>
+    <div class="section-head reveal">
+      <p class="eyebrow">Catálogo Travel Group Perú</p>
+      <h2>Destinos a los que se llega caminando</h2>
+      <p>
+        Cada zona está asociada a una estación y a una distancia real de ida y vuelta, no a un traslado en vehículo.
+      </p>
+    </div>
+
+    @if (cargando()) {
+      <div class="bento bento--carga" aria-hidden="true">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="skeleton skeleton-card"></div>
+        }
+      </div>
+    } @else if (destinos().length === 0) {
+      <div class="empty-state reveal">
+        <span class="empty-state__icon"><app-icon name="mountain" [size]="24" /></span>
+        <h3>Todavía no hay zonas publicadas</h3>
+        <p>El equipo de Travel Group Perú registra las zonas desde el panel interno.</p>
+      </div>
+    } @else {
+      <div class="bento" [class.bento--completo]="bentoCompleto()">
+        @for (zona of destinos(); track zona.zon_id_zona) {
+          <article class="destino reveal">
+            <app-image-slot
+              class="destino__foto"
+              [src]="zona.zon_imagen_url"
+              [alt]="'Fotografía de ' + zona.zon_nombre"
+              ratio="4 / 3"
+            />
+            <div class="destino__cuerpo">
+              <span class="tag tag-accent">
+                <app-icon [name]="iconoCategoria(zona)" [size]="12" [strokeWidth]="2" />
+                {{ zona.zon_categoria }}
+              </span>
+              <h3 class="card-title">{{ zona.zon_nombre }}</h3>
+              <p class="card-meta num">
+                <span>{{ zona.zon_distancia_km }} km ida</span>
+                <span class="dot" aria-hidden="true"></span>
+                <span>{{ zona.zon_minutos_ida_vuelta }} min total</span>
+                <span class="dot" aria-hidden="true"></span>
+                <span>{{ zona.zon_dificultad }}</span>
+              </p>
+            </div>
+          </article>
+        }
+      </div>
+
+      <p class="destinos__pie reveal">
+        <button type="button" class="btn btn-ghost" (click)="planificar()">
+          Planificar ruta
+          <app-icon name="arrow-up-right" [size]="15" />
+        </button>
+      </p>
+    }
+  </section>
+
+  <!-- 4 · Cómo funciona: raíl vertical que se dibuja al recorrer los pasos -->
+  <section id="como-funciona" class="section-sm como-funciona">
+    <div class="container">
+      <div class="section-head" data-reveal-group>
+        <h2 class="reveal">Cuatro pasos hasta el informe</h2>
+        <p class="reveal">
+          El sistema cruza las zonas de Travel Group Perú con los horarios de PeruRail y el pronóstico del SENAMHI.
+        </p>
+      </div>
+
+      <ol class="pasos" data-reveal-group>
+        <span class="pasos__rail" aria-hidden="true"><span class="pasos__fill"></span></span>
+        @for (paso of pasos; track paso.numero) {
+          <li class="pasos__paso reveal">
+            <span class="pasos__num num">{{ paso.numero }}</span>
+            <div class="pasos__texto">
+              <h3>{{ paso.titulo }}</h3>
+              <p>{{ paso.detalle }}</p>
+            </div>
+          </li>
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- 5 · Mapa a sección completa: la lista de estaciones va DENTRO del lienzo -->
+  <section class="section-sm mapa-seccion" data-reveal-group>
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>Desde dónde puedes salir</h2>
+        <p>
+          Cada estación del catálogo de PeruRail, con sus datos sobre el propio mapa. Elige una para ver su ficha
+          completa.
+        </p>
+      </div>
+    </div>
+
+    <div class="mapa-pleno reveal">
+      <app-leaflet-map
+        [markers]="marcadores()"
+        [seleccionadoId]="estacionActiva()"
+        [hoveredId]="estacionResaltada()"
+        [etiquetasPermanentes]="true"
+        [rellenoInicio]="rellenoMapaInicio()"
+        [rellenoFin]="rellenoMapaFin()"
+        [interactivo]="false"
+        alto="fill"
+        ariaLabel="Mapa de estaciones ferroviarias del sistema"
+        (markerClick)="seleccionarEstacion($event)"
+        (markerHover)="resaltarEstacion($event)"
+      />
+
+      <div class="mapa-pleno__capa">
+        <div class="map-panel ink mapa-pleno__izq">
+          <div class="map-panel__head">
+            <h4>Estaciones de partida</h4>
+            <p>{{ estaciones().length }} estaciones en el catálogo de PeruRail.</p>
+          </div>
+
+          <div class="map-panel__list">
+            @for (estacion of estaciones(); track estacion.est_id_estacion) {
+              <button
+                type="button"
+                class="punto-card"
+                [class.is-active]="estacionActiva() === estacion.est_id_estacion"
+                [attr.aria-pressed]="estacionActiva() === estacion.est_id_estacion"
+                (click)="seleccionarEstacion(estacion.est_id_estacion)"
+                (mouseenter)="resaltarEstacion(estacion.est_id_estacion)"
+                (mouseleave)="resaltarEstacion(null)"
+                (focus)="resaltarEstacion(estacion.est_id_estacion)"
+                (blur)="resaltarEstacion(null)"
+              >
+                <app-image-slot
+                  class="punto-card__foto"
+                  [src]="estacion.est_imagen_url"
+                  alt=""
+                  [fill]="true"
+                  icon="train"
+                  [iconSize]="26"
+                />
+                <span class="punto-card__cab">
+                  <span class="punto-card__code code">{{ estacion.est_codigo }}</span>
+                  @if (estacion.est_badge) {
+                    <span class="tag tag-accent">{{ estacion.est_badge }}</span>
+                  }
+                </span>
+                <span class="punto-card__nombre">{{ estacion.est_nombre }}</span>
+                <span class="punto-card__meta num">
+                  <span>{{ estacion.est_region }}</span>
+                  <span class="dot" aria-hidden="true"></span>
+                  <span>{{ estacion.est_altitud_msnm }} msnm</span>
+                </span>
+                <span class="punto-card__datos num">
+                  <span><strong>{{ estacion.est_andenes }}</strong><span>andenes</span></span>
+                  <span><strong>{{ estacion.zonasCount ?? 0 }}</strong><span>zonas a pie</span></span>
+                  <span><strong>{{ estacion.serviciosCount ?? 0 }}</strong><span>servicios</span></span>
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="map-ficha ink mapa-pleno__der">
+          @if (estacionElegida(); as elegida) {
+            <div class="map-ficha__cab">
+              <h4>{{ elegida.est_nombre }}</h4>
+              <span>{{ elegida.est_region }} · {{ elegida.est_altitud_msnm }} msnm</span>
+            </div>
+            <dl class="ficha num">
+              <dt>Andenes</dt>
+              <dd>{{ elegida.est_andenes }}</dd>
+              <dt>Zonas a pie</dt>
+              <dd>{{ elegida.zonasCount ?? 0 }}</dd>
+              <dt>Servicios</dt>
+              <dd>{{ elegida.serviciosCount ?? 0 }}</dd>
+            </dl>
+            <button type="button" class="btn btn-accent btn-sm btn-block" (click)="planificar()">
+              Planificar desde aquí
+              <app-icon name="arrow-right" [size]="15" class="btn-arrow" />
+            </button>
+          } @else {
+            <div class="map-ficha__cab">
+              <h4>Elige una estación</h4>
+            </div>
+            <p class="map-ficha__vacio">
+              Toca un punto del mapa o una tarjeta de la izquierda para ver andenes, zonas alcanzables a pie y
+              servicios registrados.
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Fuentes: panel de tinta embutido en la página (no invierte la sección) -->
+  <section id="fuentes" class="container section-sm" data-reveal-group>
+    <div class="fuentes ink ink--grano reveal">
+      <div class="fuentes__intro">
+        <h2>Tres fuentes, un solo informe</h2>
+        <p>
+          Los datos se sincronizan a diario. El informe deja constancia de qué aportó cada fuente y cuándo se emitió.
+        </p>
+        <button type="button" class="btn btn-accent" (click)="planificar()">
+          Planificar ruta
+          <app-icon name="arrow-right" [size]="16" class="btn-arrow" />
+        </button>
+      </div>
+
+      <ul class="fuentes__lista">
+        @for (fuente of fuentes; track fuente.nombre) {
+          <li>
+            <div class="fuentes__cab">
+              <h4>{{ fuente.nombre }}</h4>
+              <span>{{ fuente.via }}</span>
+            </div>
+            <p>{{ fuente.aporta }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+</div>

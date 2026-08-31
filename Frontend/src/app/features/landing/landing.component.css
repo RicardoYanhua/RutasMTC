@@ -1,0 +1,219 @@
+/* ── 1 · hero ────────────────────────────────────────────────────────────── */
+
+/* El hero ocupa la pantalla entera por debajo del header pegajoso, de borde a
+   borde: el tren corre sobre el mismo papel que el resto de la página, sin
+   marco ni lienzo propio. `dvh` (no `vh`) para que la barra de direcciones de
+   iOS no provoque el salto de altura al aparecer y desaparecer. */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: calc(100dvh - var(--header-h));
+  overflow: hidden;
+}
+/* Relleno ASIMÉTRICO, y por eso importa: el hero centra su contenido en una
+   banda de pantalla completa, así que un bloque corto se queda clavado en
+   mitad del alto y deja un vacío bajo el header. Con más relleno abajo que
+   arriba, el centrado sigue funcionando pero el conjunto sube unos 60px y el
+   titular arranca cerca de la barra, que es donde se espera encontrarlo. */
+.hero__grid {
+  position: relative;
+  z-index: 1;
+  padding-block: clamp(16px, 2vw, 32px) clamp(76px, 11vw, 152px);
+}
+.hero__contenido { max-width: 620px; }
+.hero h1 { max-width: 13ch; margin-bottom: var(--space-5); }
+.hero .lede { max-width: 46ch; }
+.hero__cta { display: flex; gap: var(--space-3); margin-top: var(--space-8); flex-wrap: wrap; }
+
+/* Velo desde la izquierda: el titular se lee sobre papel limpio aunque la vía
+   pase por detrás. La transición se mide en PÍXELES desde el borde derecho del
+   velo, no en porcentaje: el velo se extiende `-50vw` hacia fuera para tapar
+   hasta el borde de la ventana, y un porcentaje sobre ese ancho variable
+   dejaría el degradado encima del tren en pantallas anchas (lo lavaba entero).
+   En móvil el velo pasa a vertical porque el texto ocupa todo el ancho. */
+.hero__grid::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -50vw;
+  width: calc(50vw + 700px);
+  z-index: -1;
+  background: linear-gradient(to left, transparent 0, var(--paper) 240px);
+  pointer-events: none;
+}
+
+@media (max-width: 860px) {
+  .hero { align-items: flex-end; min-height: calc(100dvh - var(--header-h)); }
+  .hero__grid { padding-bottom: clamp(32px, 8vw, 64px); }
+  .hero__contenido { max-width: none; }
+  .hero__grid::before {
+    inset: -55% -50vw 0 -50vw;
+    width: auto;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--paper) 70%, transparent) 46%,
+      var(--paper) 66%
+    );
+  }
+}
+
+/* ── 2 · cifras ──────────────────────────────────────────────────────────── */
+
+/* Banda de tinta cruzando el borde inferior del hero. Sobre un hero blanco a
+   pantalla completa hace dos trabajos a la vez: mete el negro que pide el
+   sistema y, asomando por el pliegue, avisa de que la página sigue abajo. */
+.cifras { position: relative; z-index: 2; margin-top: calc(var(--space-12) * -1); }
+.cifras__panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-lg);
+  overflow: hidden;
+}
+.cifra { padding: var(--space-7) var(--space-6); }
+.cifra + .cifra { border-left: 1px solid rgba(255, 255, 255, 0.12); }
+.cifra strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 3.6vw, 46px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #fff;
+  margin-bottom: var(--space-2);
+}
+.cifra span { font-size: 12.5px; color: rgba(255, 255, 255, 0.58); line-height: 1.35; display: block; }
+
+@media (max-width: 860px) {
+  .cifras { margin-top: calc(var(--space-6) * -1); }
+  .cifras__panel { grid-template-columns: repeat(2, 1fr); }
+  .cifra:nth-child(odd) { border-left: 0; }
+  .cifra:nth-child(n + 3) { border-top: 1px solid var(--line); }
+}
+
+/* ── 3 · destinos (bento) ────────────────────────────────────────────────── */
+
+.bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.bento--carga { grid-template-columns: repeat(4, 1fr); }
+.bento--carga .skeleton-card:first-child { grid-column: span 2; grid-row: span 2; height: auto; min-height: 280px; }
+
+/* Solo con exactamente cinco destinos el asimétrico cierra sin huecos:
+   1 celda 2x2 + 4 celdas 1x1 llenan la retícula completa. */
+.bento--completo > .destino:first-child { grid-column: span 2; grid-row: span 2; }
+.bento--completo > .destino:first-child .destino__foto { flex: 1; aspect-ratio: auto; min-height: 220px; }
+.bento--completo > .destino:first-child .card-title { font-size: 22px; }
+
+.destino {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .25s var(--ease-io);
+}
+.destino:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--line-strong); }
+.destino__foto { border-radius: 0; }
+.destino__cuerpo { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5) var(--space-5); }
+.destino__cuerpo .tag { align-self: flex-start; }
+.destino__cuerpo .card-title { margin: 0; }
+
+.destinos__pie { display: flex; justify-content: center; margin-top: var(--space-8); }
+
+@media (max-width: 1000px) {
+  .bento, .bento--carga { grid-template-columns: repeat(2, 1fr); }
+  .bento--completo > .destino:first-child { grid-column: span 2; grid-row: auto; }
+  .bento--carga .skeleton-card:first-child { grid-column: span 2; grid-row: auto; min-height: 200px; }
+}
+@media (max-width: 620px) {
+  .bento, .bento--carga { grid-template-columns: 1fr; }
+  .bento--completo > .destino:first-child { grid-column: auto; }
+  .bento--carga .skeleton-card:first-child { grid-column: auto; }
+}
+
+/* ── 4 · cómo funciona ───────────────────────────────────────────────────── */
+
+.como-funciona { background: var(--surface); border-block: 1px solid var(--line); }
+
+.pasos { position: relative; list-style: none; margin: 0; padding: 0 0 0 var(--space-12); }
+/* Raíl vertical: el trazo gris es la guía, el de acento se dibuja con el scroll. */
+.pasos__rail { position: absolute; top: 12px; bottom: 12px; left: 17px; width: 2px; background: var(--line); }
+/* El trazo de acento se dibuja conforme se recorren los cuatro pasos.
+   Motivo: storytelling. El recorrido de la página imita el del planificador.
+
+   Va con `animation-timeline: view()`, no con JavaScript: el navegador la
+   resuelve en el compositor, sin ejecutar código en cada frame de scroll.
+   El estado por defecto es COMPLETO (`scaleY(1)`): si el navegador no admite
+   animaciones ligadas al scroll, se ve el raíl entero en vez de uno vacío. */
+.pasos__fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--acc-600), var(--acc-400));
+  transform-origin: top center;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .pasos__fill {
+      animation: dibujar-rail linear both;
+      animation-timeline: view();
+      animation-range: cover 18% cover 72%;
+    }
+    @keyframes dibujar-rail {
+      from { transform: scaleY(0); }
+      to { transform: scaleY(1); }
+    }
+  }
+}
+.pasos__paso { position: relative; display: flex; gap: var(--space-5); padding-block: var(--space-6); }
+.pasos__num {
+  position: absolute; left: calc(var(--space-12) * -1); top: var(--space-6);
+  display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--acc-800);
+}
+.pasos__texto h3 { margin-bottom: var(--space-1); }
+.pasos__texto p { margin: 0; color: var(--ink-600); max-width: 56ch; font-size: 14.5px; }
+
+@media (max-width: 620px) {
+  .pasos { padding-left: var(--space-10); }
+  .pasos__rail { left: 13px; }
+  .pasos__num { left: calc(var(--space-10) * -1); width: 28px; height: 28px; font-size: 11px; }
+}
+
+/* ── 5 · mapa ────────────────────────────────────────────────────────────── */
+
+/* El mapa deja de ser una tarjeta dentro de la retícula: ocupa la sección
+   entera de borde a borde (ver `.mapa-pleno` en el sistema). Solo la cabecera
+   sigue alineada al contenedor. */
+.mapa-seccion .section-head { margin-bottom: var(--space-8); }
+
+/* ── 6 · fuentes ─────────────────────────────────────────────────────────── */
+
+/* Panel de tinta embutido: la página sigue siendo clara de arriba abajo, este
+   bloque es una superficie dentro de ella, no una sección invertida. El color
+   y el contraste los pone la clase `.ink` del sistema; aquí solo la retícula. */
+.fuentes {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: var(--space-10);
+  padding: clamp(32px, 5vw, 56px);
+  border-radius: var(--r-xl);
+}
+.fuentes__intro p { max-width: 42ch; margin-bottom: var(--space-6); font-size: 15px; }
+
+.fuentes__lista { list-style: none; margin: 0; padding: 0; }
+/* Un solo filete entre elementos, no arriba y abajo de cada uno. */
+.fuentes__lista li + li { border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.fuentes__lista li { padding-block: var(--space-5); }
+.fuentes__lista li:first-child { padding-top: 0; }
+.fuentes__lista li:last-child { padding-bottom: 0; }
+.fuentes__cab { display: flex; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-2); }
+.fuentes__cab h4 { margin: 0; }
+.fuentes__cab span { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--acc-300); }
+.fuentes__lista p { font-size: 14px; line-height: 1.55; }
+
+@media (max-width: 900px) {
+  .fuentes { grid-template-columns: 1fr; gap: var(--space-8); }
+}

@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Variables de entorno
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Builds
+Frontend/dist/
+Frontend/.angular/
+Backend/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Archivos subidos (contenido no versionado, carpeta sí)
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+
+# Editores / SO
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

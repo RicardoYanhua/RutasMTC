@@ -1,0 +1,92 @@
+<span #centinela class="header-centinela" aria-hidden="true"></span>
+
+@if (!esAdmin()) {
+  <header class="nav no-imprimir" [class.is-stuck]="headerFijado()">
+    <a routerLink="/" class="nav-brand" aria-label="RUTAS·MTC, ir al inicio">
+      <app-icon name="logo" [size]="24" class="brand-mark" />
+      RUTAS·MTC
+    </a>
+
+    <nav class="nav-links" aria-label="Navegación principal">
+      <a routerLink="/" fragment="destinos">Destinos</a>
+      <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
+      <a routerLink="/" fragment="fuentes">Fuentes</a>
+    </nav>
+
+    <div class="nav-actions nav-actions--desktop">
+      <button type="button" class="btn btn-quiet btn-sm" (click)="loginModal.abrir()">Acceso Travel Group</button>
+      <a routerLink="/planificar/preferencias" class="btn btn-primary btn-sm">
+        Planificar ruta
+        <app-icon name="arrow-right" [size]="15" class="btn-arrow" />
+      </a>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-secondary btn-icon btn-sm nav-toggle"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="menuMovilAbierto()"
+      aria-controls="menu-movil"
+      [attr.aria-label]="menuMovilAbierto() ? 'Cerrar menú' : 'Abrir menú'"
+    >
+      <app-icon [name]="menuMovilAbierto() ? 'close' : 'menu'" [size]="18" />
+    </button>
+  </header>
+
+  <nav id="menu-movil" class="mobile-flyout no-imprimir" [class.is-open]="menuMovilAbierto()" aria-label="Navegación móvil">
+    <a routerLink="/" fragment="destinos" (click)="menuMovilAbierto.set(false)">Destinos</a>
+    <a routerLink="/" fragment="como-funciona" (click)="menuMovilAbierto.set(false)">Cómo funciona</a>
+    <a routerLink="/" fragment="fuentes" (click)="menuMovilAbierto.set(false)">Fuentes</a>
+    <a routerLink="/planificar/preferencias" (click)="menuMovilAbierto.set(false)">Planificar ruta</a>
+    <button type="button" (click)="abrirLoginDesdeMenu()">Acceso Travel Group</button>
+  </nav>
+}
+
+<main>
+  <router-outlet />
+</main>
+
+@if (!esAdmin()) {
+  <footer class="site-footer no-imprimir">
+    <div class="container site-footer__inner">
+      <div class="site-footer__brand">
+        <span class="nav-brand">
+          <app-icon name="logo" [size]="22" class="brand-mark" />
+          RUTAS·MTC
+        </span>
+        <p>
+          Plataforma de rutas turísticas peatonales del Ministerio de Transportes y Comunicaciones. Cruza el catálogo de
+          Travel Group Perú con los horarios de PeruRail y el pronóstico del SENAMHI.
+        </p>
+      </div>
+
+      <div class="site-footer__col">
+        <h5>Planificador</h5>
+        <ul>
+          <li><a routerLink="/planificar/preferencias">Planificar ruta</a></li>
+          <li><a routerLink="/" fragment="destinos">Destinos</a></li>
+          <li><a routerLink="/" fragment="como-funciona">Cómo funciona</a></li>
+        </ul>
+      </div>
+
+      <div class="site-footer__col">
+        <h5>Institucional</h5>
+        <ul>
+          <li><a routerLink="/" fragment="fuentes">Fuentes de datos</a></li>
+          <li><button type="button" (click)="loginModal.abrir()">Acceso Travel Group</button></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container site-footer__base">
+      <span>Ministerio de Transportes y Comunicaciones · {{ anio }}</span>
+      <span>Documento informativo. Confirma horarios en el andén antes de abordar.</span>
+    </div>
+  </footer>
+}
+
+<app-toasts />
+
+@if (loginModal.abierto()) {
+  <app-login [modoModal]="true" />
+}
