@@ -11,30 +11,13 @@ cargo del MTC.
 ```
 RutasMTC/
 ├── Backend/     API REST (Node.js + Express + MySQL)
-├── Frontend/    Aplicación web (Angular)
-└── Database/    Esquema SQL (3FN), datos semilla y documentación de normalización
+└── Frontend/    Aplicación web (Angular)
 ```
 
 ## Requisitos previos
 
 - Node.js 20+ y npm
-- MySQL 8+ en ejecución local
-
-## Base de datos
-
-1. Crear la base de datos e importar el esquema:
-
-   ```bash
-   mysql -u root -p < Database/schema.sql
-   ```
-
-2. (Opcional) Cargar datos de ejemplo:
-
-   ```bash
-   mysql -u root -p bd_rutas_turisticas < Database/seed.sql
-   ```
-
-Ver `Database/NORMALIZACION.md` para el detalle del diseño del esquema.
+- MySQL 8+ en ejecución local, con la base de datos ya creada
 
 ## Backend
 

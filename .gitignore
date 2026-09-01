@@ -19,9 +19,6 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-# Archivos subidos (contenido no versionado, carpeta sí)
-Backend/uploads/*
-!Backend/uploads/.gitkeep
 
 # Editores / SO
 .vscode/*
