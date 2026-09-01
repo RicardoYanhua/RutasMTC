@@ -1,15 +1,20 @@
 /**
  * Optimiza el .glb del hero para la web.
  *
- * El original de Sketchfab (`semi-modern_train.glb`) pesa 107 MB: 86,8 MB son
- * 19 texturas PNG de 4096², y el resto geometría sin comprimir. Servir eso en
- * una landing es inviable, así que este script produce el archivo que vive en
- * `public/models/semi-modern-train.glb` (3,5 MB, misma malla de 252.866
- * triángulos, sin simplificar):
+ * El original de Sketchfab del tren actual (`er-9-p_electric_train.glb`) pesa
+ * 61 MB: 25,8 MB son 53 texturas y el resto geometría sin comprimir. Servir eso
+ * en una landing es inviable, así que este script produce el archivo que vive
+ * en `public/models/er-9-p-electric-train.glb` (11 MB, misma malla, sin
+ * simplificar):
  *
- *   1. texturas  4096 PNG  ->  1024 WebP q78     (86,8 MB -> 0,96 MB)
- *   2. dedup + flatten + join + weld + prune     (limpia el export)
- *   3. EXT_meshopt_compression                   (geometría, decodifica rápido)
+ *   1. texturas  ->  1024 WebP q78                (25,8 MB -> 2,1 MB)
+ *   2. dedup + flatten + join + weld + prune      (limpia el export: 744
+ *      mallas -> 78, una por material)
+ *   3. EXT_meshopt_compression                    (geometría, decodifica rápido)
+ *
+ * Ojo con el paso 3: la cuantización mete una rotación en la matriz de cada
+ * nodo, así que quien mida el modelo después tiene que hacerlo vértice a
+ * vértice (`Box3.setFromObject(obj, true)`); la medida por cajas se hincha.
  *
  * Se usa meshopt y no Draco a propósito: el decodificador de meshopt es un
  * módulo ES que three.js ya trae (`meshopt_decoder.module.js`) y se empaqueta
@@ -27,6 +32,9 @@
  *   npm i --no-save @gltf-transform/core @gltf-transform/extensions \
  *                   @gltf-transform/functions meshoptimizer sharp
  *   node tools/optimizar-modelo.mjs <origen.glb> public/models/destino.glb [tamaño] [calidad]
+ *
+ * Los originales se guardan en `tools/fuentes/` (ignorado por git): fuera de
+ * `public/`, que se copia entera al build, y a mano para volver a exportar.
  */
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';

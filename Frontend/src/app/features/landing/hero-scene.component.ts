@@ -51,10 +51,21 @@ import type { HeroSceneHandle } from './hero-scene.three';
         border-radius: inherit;
         overflow: hidden;
       }
+      /* El lienzo se disuelve por abajo en vez de terminar en un corte recto.
+         Es la misma jugada que la niebla de la escena, pero en el plano de la
+         página: la niebla difumina el fondo en profundidad y no puede hacer
+         nada con el borde del canvas, que cae en primer término justo donde
+         pasan raíl y traviesas.
+
+         Va en máscara y no en un degradado de papel encima porque la máscara no
+         presupone de qué color es lo que hay debajo: sirve igual cuando el
+         panel de cifras se solapa sobre el pliegue. */
       .hero-scene {
         position: absolute;
         inset: 0;
         overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+        mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
       }
       .hero-scene canvas {
         display: block;
@@ -62,7 +73,7 @@ import type { HeroSceneHandle } from './hero-scene.three';
 
       /* Estado de carga del .glb: barra fina abajo a la derecha, sobre el papel
          del hero. No es un spinner genérico: informa del progreso real de
-         descarga de un archivo de 3,5 MB. */
+         descarga de un archivo de 11 MB. */
       .hero-scene__estado {
         position: absolute;
         right: clamp(16px, 4vw, 48px);

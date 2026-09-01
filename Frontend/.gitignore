@@ -39,6 +39,9 @@ testem.log
 /typings
 __screenshots__/
 
+# Modelos 3D sin optimizar (entrada de tools/optimizar-modelo.mjs, decenas de MB)
+/tools/fuentes/
+
 # System files
 .DS_Store
 Thumbs.db

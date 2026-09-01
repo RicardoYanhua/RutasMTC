@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { prefersReducedMotion } from '../../shared/animations/animar.util';
 
 /* Espejo de los tokens del sistema (Three.js no lee custom properties). */
@@ -12,12 +13,25 @@ const INK_500 = 0x726860;
 const ACC_500 = 0xe5372a;
 /* Verde muy apagado: la escenografía acompaña, no compite con el vehículo. */
 const PINO = 0x2f3d2c;
+/* Gris apenas frío para la cordillera: el resto de la paleta es cálida, y esa
+   diferencia mínima de temperatura es la que empuja el fondo hacia atrás. */
+const SIERRA = 0x6f7680;
 
-/** Ruta del modelo optimizado (EXT_meshopt_compression, 3,9 MB de 29,6 MB). */
-const MODELO_URL = 'models/intercity-125.glb';
+/** Ruta del modelo optimizado (EXT_meshopt_compression, 11 MB de 61 MB). */
+const MODELO_URL = 'models/er-9-p-electric-train.glb';
 
-/** Largo objetivo del tren en unidades de escena, ya normalizado. */
-const LARGO_OBJETIVO = 3.6;
+/**
+ * Ancho (gálibo) objetivo del vehículo en unidades de escena.
+ *
+ * La normalización va por el ANCHO y no por el largo a propósito: el gálibo de
+ * un tren ronda siempre los 3 m, mida la unidad 18 m o 83 m, así que es la
+ * medida que mantiene constante la escala aparente al cambiar de .glb. Ajustar
+ * por el largo hacía lo contrario: una unidad de cuatro coches se encogía hasta
+ * parecer una maqueta al lado de las traviesas, que sí tienen medida fija.
+ */
+const ANCHO_OBJETIVO = 0.58;
+/** Dónde se clava el morro del tren sobre la vía. */
+const MORRO_X = 1.8;
 /** Largo de la vía: mucho más que el tren, para que entre y salga de la niebla. */
 const LARGO_VIA = 30;
 /** Separación entre traviesas. También es el módulo del bucle de desplazamiento. */
@@ -224,14 +238,73 @@ interface Escenografia {
   avanzar(distancia: number): void;
 }
 
+/** Copia un color plano al atributo `color` de una geometría. */
+function pintarVertices(geo: THREE.BufferGeometry, color: THREE.Color): THREE.BufferGeometry {
+  const total = geo.getAttribute('position').count;
+  const canal = new Float32Array(total * 3);
+  for (let i = 0; i < total; i++) {
+    canal[i * 3] = color.r;
+    canal[i * 3 + 1] = color.g;
+    canal[i * 3 + 2] = color.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(canal, 3));
+  return geo;
+}
+
+/**
+ * Pino completo en UNA geometría: tronco troncocónico y tres pisos de copa
+ * solapados.
+ *
+ * Un cono suelto no lee como conífera; lo que hace la silueta de un pino es el
+ * escalonado de las ramas y el estrechamiento hacia la punta. Los cuatro
+ * trozos se fusionan en una sola geometría en vez de instanciarse por separado,
+ * así que el bosque entero sigue costando UNA llamada de dibujo (antes eran
+ * dos: copas y troncos).
+ *
+ * El color viaja en los vértices —tinta en el tronco, verde que se aclara
+ * piso a piso, como cuando la luz cenital solo alcanza las ramas altas— y en
+ * el shader se multiplica por el color de instancia, que varía por árbol. Un
+ * bosque de un único verde plano se delata como trama repetida.
+ *
+ * La base del tronco queda en y = 0, así que cada instancia se planta con una
+ * sola matriz y el balanceo se aplica sobre el propio pie del árbol.
+ */
+function crearGeometriaPino(basura: Basura): THREE.BufferGeometry {
+  const ALTO_TRONCO = 0.2;
+  const verde = new THREE.Color(PINO);
+  const papel = new THREE.Color(PAPER);
+
+  const tronco = pintarVertices(
+    new THREE.CylinderGeometry(0.03, 0.047, ALTO_TRONCO, 6),
+    new THREE.Color(INK_700),
+  );
+  tronco.translate(0, ALTO_TRONCO / 2, 0);
+
+  /** radio, alto, base y mezcla hacia el papel de cada piso, de abajo arriba. */
+  const pisos: ReadonlyArray<readonly [number, number, number, number]> = [
+    [0.195, 0.33, ALTO_TRONCO - 0.03, 0],
+    [0.135, 0.28, ALTO_TRONCO + 0.135, 0.06],
+    [0.082, 0.24, ALTO_TRONCO + 0.29, 0.13],
+  ];
+
+  const partes = [tronco];
+  for (const [radio, alto, base, mezcla] of pisos) {
+    const cono = new THREE.ConeGeometry(radio, alto, 8);
+    cono.translate(0, base + alto / 2, 0);
+    partes.push(pintarVertices(cono, verde.clone().lerp(papel, mezcla)));
+  }
+
+  return basura.add(mergeGeometries(partes) as THREE.BufferGeometry);
+}
+
 /**
  * Vegetación y piedras a los lados de la vía.
  *
  * Sin nada en el suelo, las traviesas corriendo bajo un tren quieto se leen
  * como una cinta transportadora: falta un punto de referencia FUERA del carril
  * que confirme el avance. Unos pinos y unas rocas pasando de largo lo resuelven
- * con muy poco coste, porque todo va en `InstancedMesh` (tres llamadas de
- * dibujo en total, no una por árbol).
+ * con muy poco coste, porque todo va en `InstancedMesh` (dos llamadas de dibujo
+ * en total, no una por árbol).
  *
  * Se colocan a partir de `margen`, calculado desde el ancho del vehículo, para
  * que nunca aparezca un pino atravesando la carrocería. Y como el resto de la
@@ -252,34 +325,49 @@ function crearEscenografia(basura: Basura, margen: number): Escenografia {
   const DISTANCIA_MINIMA = Math.max(margen, 1.6);
   const DISPERSION = 3.4;
 
-  // — pinos: copa y tronco, dos instancias por árbol —
-  const copaGeo = basura.add(new THREE.ConeGeometry(0.17, 0.66, 7));
-  const copaMat = basura.add(new THREE.MeshStandardMaterial({ color: PINO, roughness: 0.92, metalness: 0 }));
-  const copas = new THREE.InstancedMesh(copaGeo, copaMat, PINOS);
-
-  const troncoGeo = basura.add(new THREE.CylinderGeometry(0.032, 0.045, 0.2, 6));
-  const troncoMat = basura.add(new THREE.MeshStandardMaterial({ color: INK_700, roughness: 0.95, metalness: 0 }));
-  const troncos = new THREE.InstancedMesh(troncoGeo, troncoMat, PINOS);
+  // — pinos: tronco y tres pisos de copa fusionados, una instancia por árbol —
+  const pinoGeo = crearGeometriaPino(basura);
+  // `vertexColors`: el color va en la malla (tronco / pisos de copa) y se
+  // multiplica por el tinte de instancia, así que el material queda en blanco.
+  const pinoMat = basura.add(
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 }),
+  );
+  const pinos = new THREE.InstancedMesh(pinoGeo, pinoMat, PINOS);
 
   // — rocas: un icosaedro deformado por instancia con escala no uniforme —
   const rocaGeo = basura.add(new THREE.IcosahedronGeometry(0.1, 0));
   const rocaMat = basura.add(new THREE.MeshStandardMaterial({ color: INK_500, roughness: 0.88, metalness: 0.05 }));
   const rocas = new THREE.InstancedMesh(rocaGeo, rocaMat, ROCAS);
 
-  for (const malla of [copas, troncos, rocas]) {
+  for (const malla of [pinos, rocas]) {
     malla.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     malla.frustumCulled = false;
     grupo.add(malla);
   }
 
-  /** x0, z, escala, giro — fijos por instancia; solo la x se recalcula. */
-  const semillaPino = new Float32Array(PINOS * 4);
+  /** x0, z, ancho, alto, giro, inclinación — fijos; solo la x se recalcula. */
+  const semillaPino = new Float32Array(PINOS * 6);
+  const tinte = new THREE.Color();
   for (let i = 0; i < PINOS; i++) {
     const lado = Math.random() < 0.5 ? -1 : 1;
-    semillaPino[i * 4] = Math.random() * LARGO_VIA;
-    semillaPino[i * 4 + 1] = lado * (DISTANCIA_MINIMA + Math.random() * DISPERSION);
-    semillaPino[i * 4 + 2] = 0.55 + Math.random() * 0.75;
-    semillaPino[i * 4 + 3] = Math.random() * Math.PI;
+    const talla = 0.55 + Math.random() * 0.75;
+    semillaPino[i * 6] = Math.random() * LARGO_VIA;
+    semillaPino[i * 6 + 1] = lado * (DISTANCIA_MINIMA + Math.random() * DISPERSION);
+    // Ancho y alto por separado: unos pinos salen enjutos y otros achaparrados.
+    // Con una sola escala uniforme los 34 árboles son el mismo árbol de lejos.
+    // Los dos factores van centrados en 1 para que la variación no engorde el
+    // bosque: un pino que le saque la cabeza al tren le roba el plano.
+    semillaPino[i * 6 + 2] = talla * (0.87 + Math.random() * 0.26);
+    semillaPino[i * 6 + 3] = talla * (0.86 + Math.random() * 0.28);
+    semillaPino[i * 6 + 4] = Math.random() * Math.PI * 2;
+    // Nadie planta un bosque a plomo: hasta ~5° de caída rompe la verticalidad.
+    semillaPino[i * 6 + 5] = Math.random() * 0.09;
+
+    // Tinte de instancia: multiplica al color de los vértices, así que ronda el
+    // blanco. Un pelo más claro u oscuro y con deriva cálida/fría por árbol.
+    const brillo = 0.86 + Math.random() * 0.22;
+    tinte.setRGB(brillo * (0.96 + Math.random() * 0.09), brillo, brillo * (0.94 + Math.random() * 0.08));
+    pinos.setColorAt(i, tinte);
   }
   const semillaRoca = new Float32Array(ROCAS * 4);
   for (let i = 0; i < ROCAS; i++) {
@@ -301,23 +389,21 @@ function crearEscenografia(basura: Basura, margen: number): Escenografia {
 
   const colocar = (offset: number): void => {
     for (let i = 0; i < PINOS; i++) {
-      const x = enVia(semillaPino[i * 4] - offset);
-      const z = semillaPino[i * 4 + 1];
-      const k = semillaPino[i * 4 + 2];
-      euler.set(0, semillaPino[i * 4 + 3], 0);
+      const giro = semillaPino[i * 6 + 4];
+      const caida = semillaPino[i * 6 + 5];
+      // La inclinación se reparte entre X y Z según el giro: el árbol se
+      // vence hacia donde mira, no siempre hacia el mismo punto cardinal.
+      euler.set(Math.sin(giro) * caida, giro, Math.cos(giro) * caida);
       quat.setFromEuler(euler);
 
-      posicion.set(x, 0.2 * k + 0.33 * k, z);
-      escala.set(k, k, k);
+      // El pie del pino está en y = 0 de la geometría, así que se planta
+      // directamente sobre la cota de la vía.
+      posicion.set(enVia(semillaPino[i * 6] - offset), 0, semillaPino[i * 6 + 1]);
+      escala.set(semillaPino[i * 6 + 2], semillaPino[i * 6 + 3], semillaPino[i * 6 + 2]);
       matriz.compose(posicion, quat, escala);
-      copas.setMatrixAt(i, matriz);
-
-      posicion.set(x, 0.1 * k, z);
-      matriz.compose(posicion, quat, escala);
-      troncos.setMatrixAt(i, matriz);
+      pinos.setMatrixAt(i, matriz);
     }
-    copas.instanceMatrix.needsUpdate = true;
-    troncos.instanceMatrix.needsUpdate = true;
+    pinos.instanceMatrix.needsUpdate = true;
 
     for (let i = 0; i < ROCAS; i++) {
       const k = semillaRoca[i * 4 + 2];
@@ -341,6 +427,112 @@ function crearEscenografia(basura: Basura, margen: number): Escenografia {
       colocar(recorrido);
     },
   };
+}
+
+/**
+ * Una cresta: anillo vertical alrededor de la escena, recortado por arriba con
+ * un perfil de cumbres y desvanecido por abajo.
+ *
+ * Es un anillo y no un telón plano porque la cámara viaja del costado al morro:
+ * un plano de fondo fijo enseñaría el canto al girar el encuadre. Dando la
+ * vuelta completa, siempre hay cordillera detrás mire donde mire.
+ *
+ * El perfil suma armónicos ENTEROS del ángulo, así que cierra sin costura al
+ * completar la vuelta, y se pliega con `1 - |sen|`: eso convierte ondas suaves
+ * en cumbres con punta, que es lo que separa una montaña de una duna.
+ *
+ * El desvanecido inferior va en el alfa de los vértices (opaco en la cima,
+ * transparente `caida` unidades más abajo). Sin él haría falta cerrar la
+ * silueta por abajo con una recta, y esa recta se leería como una línea de
+ * suelo: justo el terreno que la escena no debe tener.
+ */
+function crearCresta(
+  basura: Basura,
+  radio: number,
+  base: number,
+  relieve: number,
+  caida: number,
+): THREE.BufferGeometry {
+  const COLUMNAS = 108;
+  const posiciones = new Float32Array((COLUMNAS + 1) * 2 * 3);
+  const colores = new Float32Array((COLUMNAS + 1) * 2 * 4);
+  const indices: number[] = [];
+  const fase = [Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28];
+
+  for (let i = 0; i <= COLUMNAS; i++) {
+    const angulo = (i / COLUMNAS) * Math.PI * 2;
+    const cumbre =
+      base +
+      relieve *
+        (0.6 * (1 - Math.abs(Math.sin(angulo * 3 + fase[0]))) +
+          0.27 * (1 - Math.abs(Math.sin(angulo * 7 + fase[1]))) +
+          0.13 * (1 - Math.abs(Math.sin(angulo * 17 + fase[2]))));
+    const x = Math.cos(angulo) * radio;
+    const z = Math.sin(angulo) * radio;
+
+    const arriba = i * 2;
+    const abajo = arriba + 1;
+    posiciones.set([x, cumbre, z], arriba * 3);
+    posiciones.set([x, cumbre - caida, z], abajo * 3);
+    colores.set([1, 1, 1, 1], arriba * 4);
+    colores.set([1, 1, 1, 0], abajo * 4);
+
+    if (i < COLUMNAS) indices.push(arriba, abajo, abajo + 2, arriba, abajo + 2, arriba + 2);
+  }
+
+  const geo = basura.add(new THREE.BufferGeometry());
+  geo.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colores, 4));
+  geo.setIndex(indices);
+  return geo;
+}
+
+/**
+ * Cordillera de fondo: dos crestas concéntricas, muy lejos y muy lavadas.
+ *
+ * El encargo pide paisaje, no escenario: tiene que sostener el fondo sin que
+ * nadie repare en él. Se consigue con tres decisiones, no con una opacidad
+ * baja a secas:
+ *
+ *   1. van MÁS ALLÁ del alcance de la niebla (que muere a 21) y por eso la
+ *      llevan desactivada: si les afectara desaparecerían del todo. La bruma
+ *      la fingen su color y su alfa, no el `Fog`.
+ *   2. perspectiva aérea: la cresta lejana es más alta, más clara y más
+ *      transparente que la cercana. Es lo que hace la atmósfera de verdad.
+ *   3. nada de suelo. Son siluetas verticales que se disuelven hacia abajo, de
+ *      modo que el papel de la página sigue siendo lo único bajo el tren.
+ *
+ * `depthWrite: false` y un `renderOrder` muy bajo las dejan detrás de todo sin
+ * recortar la sombra de contacto ni las estelas.
+ */
+function crearMontanas(basura: Basura): THREE.Group {
+  const grupo = new THREE.Group();
+
+  /** radio, base, relieve, caída, opacidad y mezcla del color hacia el papel. */
+  const capas: ReadonlyArray<readonly [number, number, number, number, number, number]> = [
+    [26, 2.1, 3, 2.8, 0.13, 0.3],
+    [19, 1.35, 1.95, 2, 0.2, 0.1],
+  ];
+
+  const papel = new THREE.Color(PAPER);
+  for (const [radio, base, relieve, caida, opacidad, mezcla] of capas) {
+    const material = basura.add(
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(SIERRA).lerp(papel, mezcla),
+        vertexColors: true,
+        transparent: true,
+        opacity: opacidad,
+        depthWrite: false,
+        fog: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    const cresta = new THREE.Mesh(crearCresta(basura, radio, base, relieve, caida), material);
+    cresta.renderOrder = -3;
+    grupo.add(cresta);
+  }
+
+  return grupo;
 }
 
 interface Estelas {
@@ -407,8 +599,8 @@ function crearEstelas(basura: Basura, cantidad = 64): Estelas {
 }
 
 /**
- * Hero de la landing: el tren `semi-modern_train` corriendo sobre su vía, sobre
- * el papel blanco del sistema.
+ * Hero de la landing: el tren eléctrico ER9-P corriendo sobre su vía, sobre el
+ * papel blanco del sistema.
  *
  * El fondo no lo pinta WebGL: el renderer va en alpha y el papel es el del
  * documento, de modo que hero y página son la misma superficie. La niebla usa
@@ -437,9 +629,10 @@ export function mountHeroScene(container: HTMLDivElement, opts: HeroSceneOpts = 
 
   const scene = new THREE.Scene();
   // Niebla del color del papel: la vía y las estelas se desvanecen en el fondo
-  // de la página, no contra un plano de recorte. El `near` se pone MÁS LEJOS que
-  // el extremo trasero del tren (cámara a ~6,6 y tren de 3,6 de largo => ~8,4):
-  // si empieza antes, la niebla lava el modelo y parece roto.
+  // de la página, no contra un plano de recorte. El `near` se pone más lejos que
+  // los coches de cabeza (cámara a ~6,6 de ellos): si empieza antes, la niebla
+  // lava el morro y el tren parece roto. La cola, en cambio, sí entra en la
+  // niebla, y ahí es donde se pierde el final de una unidad de 83 m.
   scene.fog = new THREE.Fog(PAPER, 9.5, 21);
 
   /* — movimiento de cámara: travelling, no órbita —
@@ -516,11 +709,16 @@ export function mountHeroScene(container: HTMLDivElement, opts: HeroSceneOpts = 
   const grupo = new THREE.Group();
   scene.add(grupo);
 
+  // Telón de fondo: se monta antes que nada porque es lo único que no depende
+  // del modelo, y así ya hay paisaje mientras se descarga el .glb.
+  grupo.add(crearMontanas(basura));
+
   const estelas = crearEstelas(basura);
   grupo.add(estelas.objeto);
 
   const sombra = crearSombraContacto(basura);
-  sombra.scale.set(LARGO_OBJETIVO * 1.1, 1.05, 1);
+  // Medida provisional: al cargar el .glb se reajusta al largo real del tren.
+  sombra.scale.set(MORRO_X * 2, ANCHO_OBJETIVO * 1.5, 1);
   sombra.position.y = -0.145;
   grupo.add(sombra);
 
@@ -559,7 +757,16 @@ export function mountHeroScene(container: HTMLDivElement, opts: HeroSceneOpts = 
       // orientación. Se normaliza aquí para que la cámara, las luces y la vía no
       // dependan del export: así se puede cambiar de modelo sin retocar la
       // escena. No se toca ni un vértice ni un material más allá de esto.
-      let limites = new THREE.Box3().setFromObject(raiz);
+      // `precise`: hay que medir vértice a vértice, no por cajas.
+      //
+      // El modelo va cuantizado (KHR_mesh_quantization), y eso mete una
+      // rotación en la matriz de cada nodo. La medida rápida de three.js coge la
+      // caja LOCAL de cada malla y la gira: para una pieza que en local es una
+      // diagonal larga —los instrumentos de cabina repetidos coche a coche lo
+      // son— la caja girada se hincha muchísimo. Este tren daba 83 × 71 × 82 en
+      // vez de 3,8 × 6,2 × 83, y de ahí salía una escala 20 veces menor: el tren
+      // aparecía como una maqueta perdida al fondo de la vía.
+      let limites = new THREE.Box3().setFromObject(raiz, true);
       let medida = limites.getSize(new THREE.Vector3());
 
       // Un tren es mucho más largo que ancho: el eje horizontal mayor ES su
@@ -573,23 +780,26 @@ export function mountHeroScene(container: HTMLDivElement, opts: HeroSceneOpts = 
       // justo lo que delata que la escena está montada al revés.
       raiz.rotation.y += Math.PI;
       raiz.updateMatrixWorld(true);
-      limites = new THREE.Box3().setFromObject(raiz);
+      limites = new THREE.Box3().setFromObject(raiz, true);
       medida = limites.getSize(new THREE.Vector3());
 
       const centro = limites.getCenter(new THREE.Vector3());
-      const escala = LARGO_OBJETIVO / Math.max(medida.x, 0.001);
+      const escala = ANCHO_OBJETIVO / Math.max(medida.z, 0.001);
       raiz.scale.setScalar(escala);
       alturaBase = -limites.min.y * escala;
-      raiz.position.set(-centro.x * escala, alturaBase, -centro.z * escala);
+      // El morro se clava siempre en el mismo punto de la vía; lo que sobre por
+      // detrás se va hacia la niebla. Centrar el vehículo, en cambio, movería el
+      // encuadre cada vez que el modelo tuviera otro número de coches.
+      const largoEscena = medida.x * escala;
+      raiz.position.set(MORRO_X - limites.max.x * escala, alturaBase, -centro.z * escala);
 
-      // Ancho ya escalado -> trocha -> vía a medida del vehículo.
-      const anchoEscena = medida.z * escala;
-      via = crearVia(basura, Math.max(anchoEscena * FACTOR_TROCHA, 0.08));
+      via = crearVia(basura, Math.max(ANCHO_OBJETIVO * FACTOR_TROCHA, 0.08));
       grupo.add(via.objeto);
-      sombra.scale.set(LARGO_OBJETIVO * 1.1, anchoEscena * 1.5, 1);
+      sombra.scale.set(largoEscena * 1.04, ANCHO_OBJETIVO * 1.5, 1);
+      sombra.position.x = MORRO_X - largoEscena / 2;
 
       // Pinos y rocas a partir del gálibo del vehículo: nunca dentro de él.
-      escenografia = crearEscenografia(basura, anchoEscena * 0.6);
+      escenografia = crearEscenografia(basura, ANCHO_OBJETIVO * 0.6);
       grupo.add(escenografia.objeto);
 
       raiz.traverse((hijo) => {

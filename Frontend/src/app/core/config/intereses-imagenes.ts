@@ -11,7 +11,7 @@ import { Categoria } from '../models/preferencias.model';
  *
  * Sin `/` inicial a propósito: con `<base href="/">` en index.html, Angular
  * resuelve la ruta contra la raíz del sitio sin importar la URL activa (mismo
- * patrón que `models/intercity-125.glb` en la escena del landing).
+ * patrón que el `.glb` del tren en la escena del landing).
  */
 export const IMAGEN_INTERES: Record<Categoria, string> = {
   Naturaleza: 'img/intereses/naturaleza.jpg',

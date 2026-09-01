@@ -28,35 +28,101 @@
 .hero__cta { display: flex; gap: var(--space-3); margin-top: var(--space-8); flex-wrap: wrap; }
 
 /* Velo desde la izquierda: el titular se lee sobre papel limpio aunque la vía
-   pase por detrás. La transición se mide en PÍXELES desde el borde derecho del
-   velo, no en porcentaje: el velo se extiende `-50vw` hacia fuera para tapar
-   hasta el borde de la ventana, y un porcentaje sobre ese ancho variable
-   dejaría el degradado encima del tren en pantallas anchas (lo lavaba entero).
+   pase por detrás. Tres decisiones, y las tres tienen su motivo:
+
+   · La caja DESBORDA el hero por arriba y por abajo (`-50vh` a cada lado, que
+     suman 100vh y por tanto cubren el hero midiendo lo que mida el contenido).
+     Medía justo lo que el contenido, así que sus dos cantos horizontales caían
+     en mitad del lienzo y se veían como un bloque blanco cortando la animación.
+     Del sobrante ya se encarga el `overflow: hidden` del hero.
+   · Vidrio en vez de plancha: papel al 86 % con desenfoque detrás, como la
+     barra de navegación. El tren se sigue intuyendo tras el titular. El suelo
+     está en ~72 % y lo marca el LEDE, que es el texto más claro del bloque
+     (`--ink-600`); ni el h1 en tinta ni el eyebrow, que va en `--acc-800` y es
+     todavía más oscuro que el lede. Por debajo de ahí el lede pierde el 4,5:1
+     de la AA cuando le pasa una traviesa en tinta por detrás. El 86 % deja la
+     holgura para lo que la máscara resta en la cola de los renglones largos:
+     el h1 (13ch) y el lede (46ch) mueren sobre los 470px del borde izquierdo,
+     todavía a 230 de los 260 del desvanecido, así que ni en el peor píxel
+     bajan del 5:1.
+   · La transición se mide en PÍXELES desde el borde derecho del velo, no en
+     porcentaje: el velo se extiende `-50vw` hacia fuera para tapar hasta el
+     borde de la ventana, y un porcentaje sobre ese ancho variable dejaría el
+     degradado encima del tren en pantallas anchas (lo lavaba entero). Va en la
+     máscara y no en el fondo porque el `backdrop-filter` no atiende al alfa del
+     fondo: sin máscara, el desenfoque terminaría en un canto vertical nítido en
+     mitad de la escena, que es el mismo defecto por el otro lado.
+
    En móvil el velo pasa a vertical porque el texto ocupa todo el ancho. */
 .hero__grid::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 -50vw;
+  inset: -50vh auto -50vh -50vw;
   width: calc(50vw + 700px);
   z-index: -1;
-  background: linear-gradient(to left, transparent 0, var(--paper) 240px);
+  background: color-mix(in srgb, var(--paper) 45%, transparent);
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 260px);
+  mask-image: linear-gradient(to left, transparent 0, #000 260px);
   pointer-events: none;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .hero__grid::before {
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
 }
 
 @media (max-width: 860px) {
   .hero { align-items: flex-end; min-height: calc(100dvh - var(--header-h)); }
   .hero__grid { padding-bottom: clamp(32px, 8vw, 64px); }
   .hero__contenido { max-width: none; }
+  /* A lo ancho no hay hueco libre donde desvanecer, así que aquí el degradado
+     vuelve al fondo, la máscara sobra y el desenfoque se retira: a pantalla
+     completa sobre un lienzo que repinta a 60 fps es el peor sitio para
+     pedirle a un móvil que recomponga un `backdrop-filter`. */
   .hero__grid::before {
-    inset: -55% -50vw 0 -50vw;
+    inset: -55% -50vw -50vh -50vw;
     width: auto;
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      color-mix(in srgb, var(--paper) 70%, transparent) 46%,
-      var(--paper) 66%
+      color-mix(in srgb, var(--paper) 62%, transparent) 46%,
+      color-mix(in srgb, var(--paper) 90%, transparent) 66%
     );
+    -webkit-mask-image: none;
+    mask-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
+}
+
+/* Quien pide menos transparencia no quiere vidrio: papel liso y sin desenfoque.
+   Solo de 861px arriba: el velo móvil ya es un degradado vertical y ocupa todo
+   el ancho, así que aplanarlo a papel taparía el tren entero. */
+@media (prefers-reduced-transparency: reduce) and (min-width: 861px) {
+  .hero__grid::before {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Sombra del pliegue. El lienzo ya se desvanece por abajo (máscara en
+   `app-hero-scene`), pero un desvanecido a secas deja la escena flotando: esta
+   penumbra de tinta al 7 % le da suelo y, de paso, hace de sombra proyectada
+   del panel de cifras, que sube a solaparse justo aquí.
+
+   `z-index: 0` y no 1: la deja por encima del lienzo (que va en `auto`) y por
+   debajo de `.hero__grid`, así no lava el titular ni los botones, que en móvil
+   caen exactamente en esta franja. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: clamp(96px, 17vh, 210px);
+  z-index: 0;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--ink-900) 7%, transparent));
+  pointer-events: none;
 }
 
 /* ── 2 · cifras ──────────────────────────────────────────────────────────── */

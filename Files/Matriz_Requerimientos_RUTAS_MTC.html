@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matriz de Requerimientos · RUTAS MTC</title>
+<style>
+:root{
+  --red:#E30613; --ink:#111317; --body:#2B2F36; --grey:#6B7280;
+  --line:#E4E6EA; --cloud:#F7F8F9; --white:#fff; --paper:#FBFBFC;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  color:var(--body); background:var(--paper); line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+/* ---------- portada ---------- */
+.hero{background:var(--ink);color:#fff;padding:76px 0 64px;margin-bottom:0}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--red);margin-bottom:22px}
+.hero h1{font-size:clamp(30px,4.6vw,48px);font-weight:700;line-height:1.06;letter-spacing:-.02em}
+.hero .sub{font-size:clamp(15px,1.8vw,19px);color:#C9CDD4;margin-top:14px;max-width:760px;font-weight:400}
+.rule{width:74px;height:4px;background:var(--red);margin:30px 0 22px}
+.hero .ent{font-size:13px;color:#8E949E}
+
+/* ---------- ficha ---------- */
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:0;
+      border-bottom:1px solid var(--line);background:var(--white)}
+.meta div{padding:20px 24px;border-right:1px solid var(--line)}
+.meta div:last-child{border-right:none}
+.meta dt{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--red);margin-bottom:5px}
+.meta dd{font-size:14px;color:var(--ink);font-weight:600}
+
+/* ---------- navegación ---------- */
+nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);
+    backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav .wrap::-webkit-scrollbar{display:none}
+nav button{background:none;border:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--grey);
+  padding:17px 16px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s}
+nav button:hover{color:var(--ink)}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+
+/* ---------- secciones ---------- */
+main{padding:44px 0 90px}
+.panel[hidden]{display:none}
+.sechead{display:flex;align-items:flex-start;gap:22px;border-top:2px solid var(--ink);
+         padding-top:18px;margin-bottom:26px}
+.sechead .num{font-size:40px;font-weight:700;color:var(--red);line-height:.9;letter-spacing:-.03em}
+.sechead .eyebrow{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--grey)}
+.sechead h2{font-size:24px;font-weight:700;color:var(--ink);letter-spacing:-.015em;margin-top:3px}
+.sechead p{font-size:14px;color:var(--grey);margin-top:7px;max-width:760px}
+
+h3{font-size:16px;font-weight:700;color:var(--ink);margin:34px 0 12px;
+   padding-left:11px;border-left:3px solid var(--red)}
+p.lead{font-size:14.5px;color:var(--body);max-width:850px;margin-bottom:16px}
+
+/* ---------- tarjetas ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:18px 0 6px}
+.card{background:var(--cloud);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card .lab{font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--red)}
+.card .val{font-size:19px;font-weight:700;color:var(--ink);margin-top:5px;letter-spacing:-.01em}
+.card .foot{font-size:12px;color:var(--grey);margin-top:3px}
+
+/* ---------- escala ---------- */
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px;margin:18px 0}
+.scale .s{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;text-align:center}
+.scale .s b{display:block;font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.scale .s.hi b{color:var(--red)}
+.scale .s span{display:block;font-size:12.5px;color:var(--grey);margin-top:8px;line-height:1.45}
+.scale .s em{display:block;font-size:10.5px;color:var(--ink);margin-top:9px;font-style:normal;
+  font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+
+/* ---------- tablas ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--cloud);font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--grey);text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FCFCFD}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.code{font-weight:700;color:var(--red);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--grey)}
+
+/* ---------- matriz AHP ---------- */
+.matrix{margin-bottom:34px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.matrix > header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.matrix h4{font-size:15px;font-weight:700;color:var(--ink)}
+.matrix h4 span{color:var(--red);margin-right:6px}
+.matrix .tagline{font-size:12px;color:var(--grey);margin-top:3px}
+.pill{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--cloud);color:var(--ink);white-space:nowrap}
+.pill.win{background:var(--red);border-color:var(--red);color:#fff}
+.matrix table{font-size:12px}
+.matrix th.crit{text-align:left}
+.matrix tbody th{text-align:left;font-weight:600;color:var(--ink);padding:9px 14px;
+  background:var(--cloud);border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px}
+.matrix td{padding:9px 10px;text-align:center;font-variant-numeric:tabular-nums;
+  border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+.matrix td.diag{color:#C6CAD1;background:#FCFCFD}
+.v10{color:var(--red);font-weight:700}
+.v5{color:var(--ink);font-weight:600}
+.v02,.v01{color:#9AA1AC}
+.matrix td.tot{background:#FAFAFB;font-weight:700;color:var(--ink)}
+.matrix td.pes{background:#FDF3F3;font-weight:700;color:var(--red);font-size:11.5px}
+.matrix tr.best th,.matrix tr.best td{background:#FDF3F3}
+.matrix tr.best th{box-shadow:inset 3px 0 0 var(--red)}
+.matrix tfoot td{background:var(--ink);color:#fff;font-weight:700;border:none;padding:11px 10px}
+.matrix tfoot td.lab{text-align:right;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+
+/* ---------- barra de peso ---------- */
+.bar{height:5px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px;min-width:74px}
+.bar i{display:block;height:100%;background:var(--red);border-radius:999px}
+
+/* ---------- exportar ---------- */
+.export{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.export header{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:18px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.export h3{margin:0;border:none;padding:0;font-size:15px}
+button.act{background:var(--ink);color:#fff;border:none;border-radius:8px;padding:10px 18px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+button.act:hover{background:var(--red)}
+textarea{width:100%;height:440px;border:none;padding:18px 20px;font-family:var(--mono);
+  font-size:11.5px;line-height:1.55;color:var(--body);resize:vertical;outline:none;white-space:pre}
+select{font:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;
+  background:#fff;color:var(--ink)}
+
+.note{border-left:3px solid var(--red);background:var(--cloud);border-radius:0 10px 10px 0;
+  padding:18px 22px;margin:20px 0;font-size:13.5px}
+.note b{display:block;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--red);margin-bottom:7px}
+.note.dark{background:var(--ink);color:#D6D9DE}
+.note.dark b{color:#fff}
+
+footer{border-top:1px solid var(--line);padding:26px 0 40px;font-size:12px;color:var(--grey);background:#fff}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:700px){
+  .wrap{padding:0 18px}
+  .sechead{gap:14px}.sechead .num{font-size:30px}
+  .meta div{border-right:none;border-bottom:1px solid var(--line)}
+}
+@media print{
+  nav,.export,button{display:none!important}
+  .panel[hidden]{display:block!important}
+  body{background:#fff}
+  .matrix{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Ingeniería de Software · Unidad IV · Caso Zonas Turísticas</div>
+    <h1>Documento de Requerimientos<br>Norma IEEE 830 · ISO/IEC/IEEE 29148</h1>
+    <p class="sub">Sistema Web de Rutas Turísticas Peatonales desde Estaciones Ferroviarias</p>
+    <div class="rule"></div>
+    <p class="ent">Ministerio de Transportes y Comunicaciones del Perú · Proyecto RT-2026-001 · “RUTAS MTC”</p>
+  </div>
+</header>
+
+<section class="meta wrap" style="max-width:1180px" id="ficha"></section>
+
+<nav>
+  <div class="wrap" role="tablist">
+    <button role="tab" aria-selected="true"  data-p="crit">Criterios y escala</button>
+    <button role="tab" aria-selected="false" data-p="req">Especificación RF / RNF</button>
+    <button role="tab" aria-selected="false" data-p="eva">Matrices AHP</button>
+    <button role="tab" aria-selected="false" data-p="res">Resumen analítico</button>
+    <button role="tab" aria-selected="false" data-p="tra">Trazabilidad</button>
+    <button role="tab" aria-selected="false" data-p="exp">Exportar a Excel</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ CRITERIOS ============ -->
+  <section class="panel" id="p-crit">
+    <div class="sechead">
+      <div class="num">01</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Criterios de calidad y escala de medida</h2>
+        <p>Las nueve características que la norma exige a todo requerimiento, y la escala con la que se comparan una
+           contra otra en cada matriz.</p>
+      </div>
+    </div>
+
+    <div class="cards" id="kpis"></div>
+
+    <h3>Cómo se realiza la medida</h3>
+    <p class="lead">La matriz se llena comparando los criterios uno contra uno, fila frente a columna. En cada casilla
+      hay que preguntarse: <em>¿qué tan importante es el criterio de la fila respecto al criterio de la columna?</em>
+      La celda simétrica toma siempre el valor recíproco, de modo que la matriz queda consistente por construcción.</p>
+    <div class="scale" id="escala"></div>
+
+    <div class="note">
+      <b>Fórmula aplicada</b>
+      El <strong>Total</strong> de cada fila es la suma de sus ocho comparaciones (la diagonal no se suma). El
+      <strong>Peso ponderado</strong> es ese total dividido entre la suma general de la matriz, de modo que la columna
+      de pesos siempre suma 1,00000000. El criterio con mayor peso es el que gobierna la redacción de ese requerimiento.
+    </div>
+
+    <h3>Las nueve características</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th style="width:150px">Característica</th><th>Definición normativa</th></tr></thead>
+        <tbody id="defs"></tbody>
+      </table>
+    </div>
+
+    <h3>De IEEE 830 a ISO/IEC/IEEE 29148</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:120px">Característica</th><th>Documentación informal</th>
+          <th>Norma IEEE 830</th><th>Norma ISO/IEC/IEEE 29148</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><strong>Claridad</strong></td><td class="muted">Sujeta a interpretaciones erróneas.</td>
+            <td>Cada requisito es único e inequívoco.</td>
+            <td>Se exige la regla de singularidad (una sola idea por párrafo) y el uso obligatorio de sintaxis formal
+                («El sistema deberá…») para erradicar cualquier ambigüedad.</td></tr>
+          <tr><td><strong>Validación</strong></td><td class="muted">Difícil de probar si se cumplió.</td>
+            <td>Cada requisito debe ser verificable con pruebas.</td>
+            <td>Cada requisito incluye criterios de aceptación explícitos y trazabilidad bidireccional hacia los casos
+                de prueba desde el inicio.</td></tr>
+          <tr><td><strong>Organización</strong></td><td class="muted">Datos dispersos en notas o correos.</td>
+            <td>Estructura jerárquica estandarizada.</td>
+            <td>Arquitectura modular por niveles de abstracción: negocio, usuario y sistema.</td></tr>
+          <tr><td><strong>Autoridad</strong></td><td class="muted">Difícil de auditar o aprobar.</td>
+            <td>Aprobación formal por el Analista de Negocio.</td>
+            <td>Proceso iterativo de gobernanza con aprobación conjunta de múltiples stakeholders (negocio, desarrollo
+                y aseguramiento de calidad).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note dark">
+      <b>Por qué se habla de actualización</b>
+      La norma IEEE 830 no desapareció conceptualmente, sino que evolucionó. El propio comité de la IEEE, junto con ISO,
+      tomó la base de la 830 y la actualizó para crear la ISO/IEC/IEEE 29148, adaptándola a los sistemas complejos
+      actuales. El proyecto RT-2026-001 refleja esa misma actualización metodológica sobre sus 22 requerimientos
+      funcionales.
+    </div>
+  </section>
+
+  <!-- ============ REQUERIMIENTOS ============ -->
+  <section class="panel" id="p-req" hidden>
+    <div class="sechead">
+      <div class="num">02</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Especificación de requerimientos</h2>
+        <p>Redacción normalizada con la sintaxis formal que exige la norma: sujeto, verbo modal «deberá» y una sola
+           idea por requerimiento.</p>
+      </div>
+    </div>
+    <h3>Requerimientos funcionales</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:62px">Cód.</th><th style="width:200px">Requerimiento</th>
+          <th style="width:100px">Prioridad</th><th style="width:105px">Módulo</th>
+          <th>Redacción normalizada (ISO/IEC/IEEE 29148)</th>
+        </tr></thead>
+        <tbody id="rf-spec"></tbody>
+      </table>
+    </div>
+    <h3>Requerimientos no funcionales</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th style="width:70px">Cód.</th><th style="width:135px">Categoría</th>
+          <th>Redacción normalizada</th></tr></thead>
+        <tbody id="rnf-spec"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ EVA ============ -->
+  <section class="panel" id="p-eva" hidden>
+    <div class="sechead">
+      <div class="num">03</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Matrices AHP de evaluación</h2>
+        <p>Una matriz 9×9 por cada requerimiento funcional. La fila resaltada es el criterio que obtuvo mayor peso
+           ponderado y por tanto gobierna su redacción.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:22px">
+      <label class="muted" style="font-size:12.5px;font-weight:600" for="filtro">Filtrar por criterio ganador</label>
+      <select id="filtro">
+        <option value="">Todos los requerimientos (22)</option>
+        <option value="Necesario">Necesario</option>
+        <option value="No ambiguo">No ambiguo</option>
+        <option value="Completo">Completo</option>
+      </select>
+    </div>
+    <div id="eva"></div>
+  </section>
+
+  <!-- ============ RESUMEN ============ -->
+  <section class="panel" id="p-res" hidden>
+    <div class="sechead">
+      <div class="num">04</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Resumen analítico — el porqué de cada RF</h2>
+        <p>Síntesis de las 22 matrices: qué criterio ganó, con qué peso y cuál es la lógica detrás de ese resultado.</p>
+      </div>
+    </div>
+    <div class="cards" id="perfiles"></div>
+    <div class="tbl-wrap" style="margin-top:22px">
+      <table>
+        <thead><tr>
+          <th class="c" style="width:44px">N°</th><th style="width:215px">Requerimiento funcional</th>
+          <th class="c" style="width:130px">Criterio ganador</th><th style="width:118px">Peso AHP</th>
+          <th>Justificación analítica</th>
+        </tr></thead>
+        <tbody id="res"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ TRAZABILIDAD ============ -->
+  <section class="panel" id="p-tra" hidden>
+    <div class="sechead">
+      <div class="num">05</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Matriz de trazabilidad y cumplimiento</h2>
+        <p>Contraste entre lo que el caso exige y lo que el producto entregado evidencia, para los 22 requerimientos
+           funcionales y los 14 no funcionales.</p>
+      </div>
+    </div>
+    <div class="cards" id="cobertura"></div>
+    <div class="tbl-wrap" style="margin-top:22px">
+      <table>
+        <thead><tr>
+          <th class="c" style="width:44px">N°</th><th style="width:26%">RF — Caso</th>
+          <th class="c" style="width:96px">RF evidenciado</th><th>RNF — Caso</th>
+          <th class="c" style="width:104px">RNF evidenciado</th>
+        </tr></thead>
+        <tbody id="tra"></tbody>
+      </table>
+    </div>
+    <div class="note">
+      <b>Restricción de evaluación</b>
+      El criterio de aceptación del entregable exige RF evidenciados por encima del 50 %. El producto RUTAS MTC v1.0.0
+      alcanza el 100 % tanto en requerimientos funcionales como no funcionales.
+    </div>
+  </section>
+
+  <!-- ============ EXPORTAR ============ -->
+  <section class="panel" id="p-exp" hidden>
+    <div class="sechead">
+      <div class="num">06</div>
+      <div>
+        <div class="eyebrow">Sección</div>
+        <h2>Exportar los datos a Excel</h2>
+        <p>Bloques numéricos puros de 9×9, uno por requerimiento, sin totales ni pesos, para pegarlos directamente en
+           la hoja EVA sin romper las fórmulas.</p>
+      </div>
+    </div>
+    <div class="export">
+      <header>
+        <div>
+          <h3>Datos tabulados (TSV)</h3>
+          <p class="muted" style="font-size:12.5px;margin-top:4px">Un bloque por requerimiento, separados por una línea
+            en blanco y precedidos de su código como comentario.</p>
+        </div>
+        <button class="act" id="copy">Copiar todo</button>
+      </header>
+      <textarea id="tsv" readonly></textarea>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>DOC-REQ-RT-2026-001 · Norma IEEE 830 actualizada a ISO/IEC/IEEE 29148</span>
+    <span>Ministerio de Transportes y Comunicaciones · Pucallpa, Perú · 2026</span>
+  </div>
+</footer>
+
+<script>
+const DATA = {"criterios": ["Necesario", "Completo", "Consistente", "Singular", "No ambiguo", "Factible", "Verificable", "Modificable", "Rastreable"], "defs": {"Necesario": "El requerimiento ofrece a los stakeholders el valor de negocio esperado, diferencia el producto de otros del mercado o es necesario para adecuarse a una regulación externa. Ante la duda cabe preguntar: “¿qué sería lo peor de no incluirlo?”. Si no hay respuesta ni consecuencia, probablemente no sea necesario.", "Completo": "Un requerimiento está completo si no necesita ampliar detalles en su redacción, es decir, si proporciona la información suficiente para su comprensión.", "Consistente": "Un requerimiento es consistente si no contradice a otro requerimiento. Un ejemplo de contradicción es que el sistema de permisos autorice a un usuario a hacer algo que no está en su tabla de acceso.", "Singular": "Contiene una sola idea. El requerimiento provee una función o capacidad acorde con una necesidad de los stakeholders, evitando combinar varios requerimientos en un solo párrafo.", "No ambiguo": "El requerimiento está escrito con total claridad y precisión, de modo que posee una única interpretación posible para todos los lectores. No utiliza términos vagos ni subjetivos.", "Factible": "Es posible implementar el requerimiento dentro de las capacidades y limitaciones del sistema y del proyecto: se conoce el framework de desarrollo y se cuenta con el tiempo y el presupuesto necesarios.", "Verificable": "Debe ser posible comprobarlo por inspección, análisis, prueba o demostración. Al escribirlo se deben determinar sus criterios de aceptación; si no se puede comprobar, no se sabe si se cumplió.", "Modificable": "Que se pueda realizar alguna modificación sobre el requerimiento y que esta sea sencilla, consistente y completa.", "Rastreable": "La especificación se organiza de tal forma que cada función del sistema se pueda rastrear hasta su conjunto de requerimientos correspondiente. Facilita las pruebas y la validación del diseño."}, "escala": [{"v": "10", "t": "El criterio de fila es mucho más importante que el criterio de columna.", "r": "Recíproco: 0.1"}, {"v": "5", "t": "El criterio de fila es más importante que el criterio de columna.", "r": "Recíproco: 0.2"}, {"v": "1", "t": "Ambos criterios son igual de importantes.", "r": "Recíproco: 1"}, {"v": "0.2", "t": "El criterio de fila es menos importante que el criterio de columna.", "r": "Recíproco: 5"}, {"v": "0.1", "t": "El criterio de fila es mucho menos importante que el criterio de columna.", "r": "Recíproco: 10"}], "meta": {"codigo": "RT-2026-001", "proyecto": "Sistema Web de Rutas Turísticas Peatonales desde Estaciones Ferroviarias", "corto": "RUTAS MTC", "version": "1.0", "fecha": "17 de agosto de 2026", "consorcio": "Ministerio de Transportes y Comunicaciones (MTC)", "creado": "Fabián Guerra (Jefe de Proyecto) · Marcelo Tapia (Analista de Negocios)", "creado2": "Ricardo Yanapa (Desarrollador)", "aprobado": "Ing. Mg. Freddy Ferrari Fernández", "archivo": "DOC-REQ-RT-2026-001 – Norma IEEE 830 act. ISO/IEC/IEEE 29148.xlsx", "confidencialidad": "Media", "norma": "ISO/IEC/IEEE 29148 (actualización de IEEE 830)", "metodologia": "Scrum Vanilla · Scrum Guide 2020"}, "perfiles": {"A": {"nombre": "Perfil A · Núcleo exigido por el caso", "gana": "Necesario", "just": "Requerimiento obligatorio. La hoja de práctica lo exige de forma textual —planificar rutas a pie desde las estaciones, mostrar zonas cercanas, cargar y administrar los datos de cada entidad—, de modo que la necesidad de negocio predominó sobre el resto de características en todas las comparaciones."}, "B": {"nombre": "Perfil B · Regla técnica exacta", "gana": "No ambiguo", "just": "Regla técnica estricta. Se trata de cálculos y de integraciones cuyo resultado no admite interpretación: la distancia de ida y vuelta, el reparto de tiempos entre hitos, el pronóstico por estación y fecha y las reglas de validación. La exactitud de la redacción dominó sobre las demás características."}, "C": {"nombre": "Perfil C · Conjetura de completitud", "gana": "Completo", "just": "Conjetura estratégica. Nace de la indicación de completar aquello que el caso no detalla. No es literalmente obligatorio para aprobar el entregable, pero ganó su peso porque hace que el producto sea robusto y realmente utilizable; por eso la completitud de la redacción predominó."}}, "rf": [{"cod": "RF01", "nombre": "Consultar catálogo público de estaciones", "perfil": "A", "modulo": "Integración", "texto": "El sistema deberá mostrar al ciudadano el catálogo de estaciones ferroviarias que se encuentren activas y publicadas, indicando código, nombre, región, altitud, andenes y ubicación geográfica.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF02", "nombre": "Consultar zonas turísticas por estación", "perfil": "A", "modulo": "Cliente", "texto": "El sistema deberá listar las zonas turísticas asociadas a la estación seleccionada, indicando categoría, distancia de ida, tiempo total de ida y vuelta, dificultad, horario de atención y condición de ingreso.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF03", "nombre": "Registrar preferencias turísticas", "perfil": "A", "modulo": "Cliente", "texto": "El sistema deberá permitir al ciudadano declarar una o más categorías de interés, la dificultad máxima aceptada, el tiempo disponible para caminar entre 30 y 240 minutos, y la fecha prevista del viaje.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF04", "nombre": "Seleccionar estación de partida", "perfil": "A", "modulo": "Cliente", "texto": "El sistema deberá permitir al ciudadano seleccionar su estación de partida desde un listado con buscador o desde un mapa interactivo.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF05", "nombre": "Listar alternativas compatibles", "perfil": "A", "modulo": "Cliente", "texto": "El sistema deberá descartar de las alternativas ofrecidas toda zona turística cuya dificultad supere la declarada o cuyo tiempo de ida y vuelta exceda el tiempo disponible indicado por el ciudadano.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF06", "nombre": "Calcular la ruta peatonal de ida y vuelta", "perfil": "B", "modulo": "Cliente", "texto": "El sistema deberá calcular la distancia total como el doble de la distancia de ida, redondeada a dos decimales, y construir la línea de tiempo del recorrido repartiendo proporcionalmente el tiempo total entre los tramos: salida, hitos de ida, destino, hitos de vuelta y retorno.", "prioridad": "Esencial", "m": [["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["5", "5", "5", "5", "1", "5", "5", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["5", "5", "5", "5", "0.2", "5", "1", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [18.4, 18.4, 18.4, 3.2, 40.0, 18.4, 35.2, 3.2, 3.2], "grand": 158.4, "pesos": [0.11616162, 0.11616162, 0.11616162, 0.02020202, 0.25252525, 0.11616162, 0.22222222, 0.02020202, 0.02020202], "gana": "No ambiguo", "peso": 0.25252525}, {"cod": "RF07", "nombre": "Consultar el pronóstico climático", "perfil": "B", "modulo": "Integración", "texto": "El sistema deberá entregar, para una estación y una fecha dadas, la temperatura, la sensación térmica, la probabilidad de lluvia, la velocidad del viento, el índice ultravioleta y un aviso de recomendación al caminante.", "prioridad": "Esencial", "m": [["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["5", "5", "5", "5", "1", "5", "5", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["5", "5", "5", "5", "0.2", "5", "1", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [18.4, 18.4, 18.4, 3.2, 40.0, 18.4, 35.2, 3.2, 3.2], "grand": 158.4, "pesos": [0.11616162, 0.11616162, 0.11616162, 0.02020202, 0.25252525, 0.11616162, 0.22222222, 0.02020202, 0.02020202], "gana": "No ambiguo", "peso": 0.25252525}, {"cod": "RF08", "nombre": "Sincronizar automáticamente el clima", "perfil": "B", "modulo": "Integración", "texto": "El sistema deberá sincronizar la previsión climática de todas las estaciones publicadas una vez al día a las 05:00 hora de Lima, y bajo demanda cuando la previsión de la fecha consultada no exista en la caché.", "prioridad": "Esencial", "m": [["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["5", "5", "5", "5", "1", "5", "5", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["5", "5", "5", "5", "0.2", "5", "1", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [18.4, 18.4, 18.4, 3.2, 40.0, 18.4, 35.2, 3.2, 3.2], "grand": 158.4, "pesos": [0.11616162, 0.11616162, 0.11616162, 0.02020202, 0.25252525, 0.11616162, 0.22222222, 0.02020202, 0.02020202], "gana": "No ambiguo", "peso": 0.25252525}, {"cod": "RF09", "nombre": "Generar el informe turístico consolidado", "perfil": "A", "modulo": "Informes", "texto": "El sistema deberá emitir un informe consolidado que reúna las preferencias declaradas, la estación de partida, la zona turística elegida, la ruta calculada, el pronóstico climático y el servicio ferroviario, e identificarlo con un folio único con formato INF-AAAA-NNNNNN.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF10", "nombre": "Recuperar un informe por su código", "perfil": "C", "modulo": "Informes", "texto": "El sistema deberá permitir recuperar un informe previamente emitido a partir de su folio, mostrando los valores calculados en el momento de la emisión.", "prioridad": "Esencial", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF11", "nombre": "Autenticar a los operadores del panel", "perfil": "C", "modulo": "Administración", "texto": "El sistema deberá verificar las credenciales del operador contra el hash almacenado y, si son correctas, emitir un token de sesión con expiración que transporte su rol y su entidad.", "prioridad": "Esencial", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF12", "nombre": "Controlar el acceso por rol", "perfil": "C", "modulo": "Administración", "texto": "El sistema deberá verificar en el servidor, en cada operación, que el rol del operador (perurail, travelgroup o mtc) esté autorizado para el recurso solicitado, y rechazar la petición en caso contrario.", "prioridad": "Esencial", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF13", "nombre": "Administrar estaciones ferroviarias", "perfil": "A", "modulo": "Administración", "texto": "El sistema deberá permitir al operador de PeruRail registrar, consultar y modificar estaciones ferroviarias, validando el código, la región, la altitud, el número de andenes y las coordenadas geográficas.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF14", "nombre": "Administrar servicios, horarios y tarifas", "perfil": "A", "modulo": "Administración", "texto": "El sistema deberá permitir al operador de PeruRail registrar y modificar servicios ferroviarios con su estación de origen y destino, hora de salida y de retorno, tiempo de tránsito y tarifa del billete.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF15", "nombre": "Administrar zonas turísticas e hitos", "perfil": "A", "modulo": "Administración", "texto": "El sistema deberá permitir al operador de Travel Group Perú registrar y modificar zonas turísticas con su categoría, distancia, tiempo, dificultad, horario, ingreso, descripción e hitos ordenados del recorrido a pie.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF16", "nombre": "Consultar estaciones en solo lectura", "perfil": "A", "modulo": "Administración", "texto": "El sistema deberá permitir al operador de Travel Group Perú consultar el catálogo de estaciones sin habilitar ninguna operación de escritura sobre él.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF17", "nombre": "Publicar o retirar contenido público", "perfil": "A", "modulo": "Administración", "texto": "El sistema deberá reservar exclusivamente al gestor MTC la facultad de publicar o retirar de publicación estaciones, servicios y zonas turísticas, y deberá crear todo registro nuevo en estado despublicado.", "prioridad": "Esencial", "m": [["1", "5", "5", "10", "5", "5", "5", "10", "10"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.2", "1", "1", "5", "1", "1", "1", "5", "5"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.1", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [55, 19.2, 19.2, 3.1, 19.2, 19.2, 19.2, 3.1, 3.1], "grand": 160.3, "pesos": [0.34310667, 0.11977542, 0.11977542, 0.01933874, 0.11977542, 0.11977542, 0.11977542, 0.01933874, 0.01933874], "gana": "Necesario", "peso": 0.34310667}, {"cod": "RF18", "nombre": "Dar de baja y reactivar lógicamente", "perfil": "C", "modulo": "Administración", "texto": "El sistema deberá permitir al dueño del dato dar de baja y reactivar sus registros mediante una marca lógica, sin exponer ninguna operación de borrado físico.", "prioridad": "Esencial", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF19", "nombre": "Validar los datos de entrada", "perfil": "B", "modulo": "Transversal", "texto": "El sistema deberá validar en el servidor todos los datos recibidos antes de persistirlos y devolver, cuando alguno no cumpla su regla, el detalle del campo rechazado y el motivo.", "prioridad": "Esencial", "m": [["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["5", "5", "5", "5", "1", "5", "5", "5", "5"], ["1", "1", "1", "5", "0.2", "1", "0.2", "5", "5"], ["5", "5", "5", "5", "0.2", "5", "1", "5", "5"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"], ["0.2", "0.2", "0.2", "1", "0.2", "0.2", "0.2", "1", "1"]], "tot": [18.4, 18.4, 18.4, 3.2, 40.0, 18.4, 35.2, 3.2, 3.2], "grand": 158.4, "pesos": [0.11616162, 0.11616162, 0.11616162, 0.02020202, 0.25252525, 0.11616162, 0.22222222, 0.02020202, 0.02020202], "gana": "No ambiguo", "peso": 0.25252525}, {"cod": "RF20", "nombre": "Cargar imágenes de estaciones y zonas", "perfil": "C", "modulo": "Administración", "texto": "El sistema deberá permitir adjuntar una imagen a cada estación y a cada zona turística, almacenando en la base de datos únicamente la ruta pública del archivo cargado en la propia plataforma.", "prioridad": "Condicional", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF21", "nombre": "Visualizar la ruta sobre un mapa", "perfil": "C", "modulo": "Cliente", "texto": "El sistema deberá representar sobre un mapa interactivo la estación de partida, la zona turística de destino y los hitos del recorrido a pie.", "prioridad": "Condicional", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}, {"cod": "RF22", "nombre": "Exportar el informe a PDF", "perfil": "C", "modulo": "Informes", "texto": "El sistema deberá ofrecer una vista de impresión del informe optimizada para hoja A4 vertical, sin menús ni botones de la aplicación, que permita guardarlo como PDF desde el navegador.", "prioridad": "Opcional", "m": [["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["10", "1", "5", "10", "5", "1", "10", "10", "10"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["5", "0.2", "1", "5", "1", "0.2", "1", "5", "5"], ["10", "1", "5", "10", "5", "1", "5", "10", "10"], ["5", "0.1", "1", "5", "1", "0.2", "1", "5", "5"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"], ["1", "0.1", "0.2", "1", "0.2", "0.1", "0.2", "1", "1"]], "tot": [3.8, 61.0, 22.4, 3.8, 22.4, 56.0, 22.3, 3.8, 3.8], "grand": 199.3, "pesos": [0.01906673, 0.30607125, 0.11239338, 0.01906673, 0.11239338, 0.28098344, 0.11189162, 0.01906673, 0.01906673], "gana": "Completo", "peso": 0.30607125}], "rnf": [{"cod": "RNF01", "cat": "Usabilidad", "txt": "La interfaz deberá ser web responsive y adaptarse a dispositivos móviles, con puntos de quiebre para teléfono, tableta y escritorio, sin desbordes horizontales desde 360 píxeles de ancho."}, {"cod": "RNF02", "cat": "Rendimiento", "txt": "El tiempo de respuesta de cada consulta deberá ser menor a 2 segundos en condiciones normales de operación."}, {"cod": "RNF03", "cat": "Actualidad del dato", "txt": "La previsión climática y los datos ferroviarios deberán actualizarse diariamente; la sincronización climática se ejecutará a las 05:00 hora de Lima, antes del primer servicio del día."}, {"cod": "RNF04", "cat": "Accesibilidad", "txt": "La interfaz deberá ser amigable y accesible: contraste suficiente, textos alternativos en las imágenes y navegación operable por teclado."}, {"cod": "RNF05", "cat": "Seguridad", "txt": "Las contraseñas deberán almacenarse cifradas con bcrypt y no exponerse fuera del backend; la sesión del panel se sostendrá con tokens JWT con expiración."}, {"cod": "RNF06", "cat": "Seguridad", "txt": "La autorización por rol deberá verificarse siempre en el servidor; ocultar una opción del menú no se considerará una medida de seguridad."}, {"cod": "RNF07", "cat": "Integridad", "txt": "Toda entrada del usuario deberá validarse en el servidor antes de tocar la base de datos, con mensajes de error por campo."}, {"cod": "RNF08", "cat": "Integridad", "txt": "La base de datos deberá estar normalizada hasta la tercera forma normal sobre el motor InnoDB, con claves foráneas y sin ninguna operación de borrado físico."}, {"cod": "RNF09", "cat": "Disponibilidad", "txt": "Ante la indisponibilidad del proveedor externo de clima, el sistema deberá degradar de forma elegante y emitir el informe sin el bloque meteorológico, sin interrumpir el servicio."}, {"cod": "RNF10", "cat": "Usabilidad", "txt": "El planificador deberá guiar al ciudadano en cuatro pasos con avance controlado, impidiendo el acceso a un paso sin haber completado el anterior."}, {"cod": "RNF11", "cat": "Mantenibilidad", "txt": "El código deberá organizarse en capas —rutas, controladores, servicios, middlewares y utilidades— y la base de datos deberá aplicar una convención de prefijos por dominio."}, {"cod": "RNF12", "cat": "Portabilidad", "txt": "La plataforma deberá operar en los navegadores modernos vigentes y desplegarse sobre Node.js 20 o superior y MySQL 8 o superior."}, {"cod": "RNF13", "cat": "Trazabilidad", "txt": "Cada informe emitido deberá conservar un folio único e irrepetible y el detalle calculado en el momento de su emisión."}, {"cod": "RNF14", "cat": "Localización", "txt": "El sistema deberá operar en español de Perú, con zona horaria America/Lima y montos expresados en soles (PEN)."}]};
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h !== undefined) n.innerHTML = h; return n; };
+const esc = s => String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+/* ---- ficha ---- */
+const FICHA = [
+  ['Proyecto', DATA.meta.codigo],
+  ['Norma aplicada', 'ISO/IEC/IEEE 29148'],
+  ['Versión', DATA.meta.version],
+  ['Aprobado por', DATA.meta.aprobado],
+  ['Confidencialidad', DATA.meta.confidencialidad]
+];
+$('#ficha').innerHTML = FICHA.map(([k, v]) =>
+  `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+
+/* ---- kpis ---- */
+const cuenta = c => DATA.rf.filter(r => r.gana === c).length;
+$('#kpis').innerHTML = [
+  ['Requerimientos funcionales', DATA.rf.length, 'evaluados con matriz AHP'],
+  ['Requerimientos no funcionales', DATA.rnf.length, 'trazados al producto'],
+  ['Criterios por matriz', DATA.criterios.length, '36 comparaciones cada una'],
+  ['Comparaciones totales', DATA.rf.length * 36, 'fila contra columna'],
+  ['Prioridad IEEE 830', '19 / 2 / 1', 'esencial · condicional · opcional']
+].map(([l, v, f]) => `<div class="card"><div class="lab">${esc(l)}</div><div class="val">${v}</div><div class="foot">${esc(f)}</div></div>`).join('');
+
+/* ---- escala ---- */
+$('#escala').innerHTML = DATA.escala.map(s =>
+  `<div class="s ${s.v === '10' || s.v === '0.1' ? 'hi' : ''}"><b>${s.v}</b><span>${esc(s.t)}</span><em>${esc(s.r)}</em></div>`).join('');
+
+/* ---- definiciones ---- */
+$('#defs').innerHTML = DATA.criterios.map(c =>
+  `<tr><td><strong>${esc(c)}</strong></td><td class="muted">${esc(DATA.defs[c])}</td></tr>`).join('');
+
+/* ---- especificación ---- */
+$('#rf-spec').innerHTML = DATA.rf.map(r =>
+  `<tr><td class="code">${r.cod}</td><td><strong>${esc(r.nombre)}</strong></td>
+   <td><span class="pill">${esc(r.prioridad)}</span></td>
+   <td class="muted">${esc(r.modulo)}</td><td>${esc(r.texto)}</td></tr>`).join('');
+$('#rnf-spec').innerHTML = DATA.rnf.map(r =>
+  `<tr><td class="code">${r.cod}</td><td class="muted">${esc(r.cat)}</td><td>${esc(r.txt)}</td></tr>`).join('');
+
+/* ---- matrices ---- */
+function cls(v) { return v === '10' ? 'v10' : v === '5' ? 'v5' : (v === '0.2' || v === '0.1') ? 'v02' : ''; }
+function matriz(r) {
+  const best = DATA.criterios.indexOf(r.gana);
+  const rows = DATA.criterios.map((crit, i) => {
+    const cells = r.m[i].map((v, j) => i === j
+      ? '<td class="diag">—</td>'
+      : `<td class="${cls(v)}">${v}</td>`).join('');
+    return `<tr class="${i === best ? 'best' : ''}"><th>${esc(crit)}</th>${cells}
+      <td class="tot">${r.tot[i].toFixed(2)}</td>
+      <td class="pes">${r.pesos[i].toFixed(8)}</td></tr>`;
+  }).join('');
+  return `<article class="matrix" data-gana="${esc(r.gana)}">
+    <header>
+      <div>
+        <h4><span>${r.cod}</span>${esc(r.nombre)}</h4>
+        <div class="tagline">${esc(DATA.perfiles[r.perfil].nombre)} · módulo ${esc(r.modulo)} · prioridad IEEE 830: ${esc(r.prioridad)}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill">${(r.peso * 100).toFixed(1)} %</span>
+        <span class="pill win">Gana: ${esc(r.gana)}</span>
+      </div>
+    </header>
+    <div class="tbl-wrap" style="border:none;border-radius:0;margin:0">
+      <table>
+        <thead><tr><th class="crit">Criterio</th>
+          ${DATA.criterios.map(c => `<th class="c">${esc(c)}</th>`).join('')}
+          <th class="c">Total</th><th class="c">Peso ponderado</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td class="lab" colspan="10">Suma total</td>
+          <td>${r.grand.toFixed(2)}</td><td>1.00000000</td></tr></tfoot>
+      </table>
+    </div>
+  </article>`;
+}
+$('#eva').innerHTML = DATA.rf.map(matriz).join('');
+$('#filtro').addEventListener('change', e => {
+  const v = e.target.value;
+  document.querySelectorAll('#eva .matrix').forEach(m => {
+    m.style.display = (!v || m.dataset.gana === v) ? '' : 'none';
+  });
+});
+
+/* ---- perfiles ---- */
+$('#perfiles').innerHTML = Object.entries(DATA.perfiles).map(([k, p]) =>
+  `<div class="card"><div class="lab">${esc(p.nombre)}</div>
+   <div class="val">${cuenta(p.gana)} RF</div>
+   <div class="foot">Criterio ganador: ${esc(p.gana)}</div></div>`).join('');
+
+/* ---- resumen ---- */
+$('#res').innerHTML = DATA.rf.map((r, i) => {
+  const pct = (r.peso * 100).toFixed(1);
+  return `<tr>
+    <td class="c muted">${i + 1}</td>
+    <td><span class="code">${r.cod}</span><br>${esc(r.nombre)}</td>
+    <td class="c"><span class="pill win">${esc(r.gana)}</span></td>
+    <td><strong class="mono">${pct} %</strong><div class="bar"><i style="width:${pct}%"></i></div></td>
+    <td class="muted">${esc(DATA.perfiles[r.perfil].just)}</td></tr>`;
+}).join('');
+
+/* ---- trazabilidad ---- */
+$('#cobertura').innerHTML = [
+  ['RF del caso', DATA.rf.length, 'especificados'],
+  ['RF evidenciados', DATA.rf.length, '100 % de cobertura'],
+  ['RNF del caso', DATA.rnf.length, 'especificados'],
+  ['RNF evidenciados', DATA.rnf.length, '100 % de cobertura']
+].map(([l, v, f]) => `<div class="card"><div class="lab">${esc(l)}</div><div class="val">${v}</div><div class="foot">${esc(f)}</div></div>`).join('');
+
+const X = '<span class="pill win">X</span>';
+$('#tra').innerHTML = DATA.rf.map((r, i) => {
+  const n = DATA.rnf[i];
+  return `<tr>
+    <td class="c muted">${i + 1}</td>
+    <td><span class="code">${r.cod}</span> ${esc(r.nombre)}</td>
+    <td class="c">${X}</td>
+    <td>${n ? `<span class="code">${n.cod}</span> <span class="muted">${esc(n.txt)}</span>` : ''}</td>
+    <td class="c">${n ? X : ''}</td></tr>`;
+}).join('');
+
+/* ---- tsv ---- */
+$('#tsv').value = DATA.rf.map(r =>
+  `# ${r.cod} — ${r.nombre}\n` +
+  r.m.map((fila, i) => fila.map((v, j) => i === j ? '-' : v).join('\t')).join('\n')
+).join('\n\n');
+
+$('#copy').addEventListener('click', async () => {
+  const b = $('#copy'), t = b.textContent;
+  try { await navigator.clipboard.writeText($('#tsv').value); }
+  catch { $('#tsv').select(); document.execCommand('copy'); }
+  b.textContent = 'Copiado';
+  setTimeout(() => { b.textContent = t; }, 1800);
+});
+
+/* ---- tabs ---- */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  document.querySelectorAll('.panel').forEach(p => { p.hidden = (p.id !== 'p-' + b.dataset.p); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}));
+</script>
+</body>
+</html>
