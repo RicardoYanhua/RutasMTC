@@ -19,9 +19,6 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-#
-Backend/uploads/
-
 # Editores / SO
 .vscode/*
 !.vscode/settings.json

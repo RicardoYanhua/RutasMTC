@@ -1,7 +1,3 @@
 node_modules/
 .env
 npm-debug.log*
-
-# Imágenes subidas por el panel: el contenido no se versiona, la carpeta sí.
-uploads/*
-!uploads/.gitkeep
