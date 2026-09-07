@@ -841,13 +841,25 @@ select.input {
    una geografía gris muy tenue sobre papel, y el único color saturado de la
    escena pasan a ser los marcadores y el círculo de alcance. */
 .leaflet-container { background: #ffffff !important; font-family: var(--font-body) !important; }
-/* Mapa no manipulable: sin cursor de "arrastrable" (mentiría) y sin capturar la
-   rueda ni el gesto táctil, para que el scroll de la página lo atraviese. Los
-   marcadores sí recuperan el puntero: siguen siendo clicables. */
-.leaflet-container.leaflet-drag-target,
-.leaflet-container:not(.leaflet-grab) { cursor: default; }
-.leaflet-container:not(.leaflet-grab) .leaflet-pane { touch-action: pan-y; }
-.leaflet-container:not(.leaflet-grab) .leaflet-marker-icon { cursor: pointer; }
+/* Lámina de solo lectura (`interactivo = false`): sin cursor de "arrastrable"
+   (mentiría) y sin capturar la rueda ni el gesto táctil, para que el scroll de
+   la página lo atraviese. Los marcadores sí recuperan el puntero: siguen siendo
+   clicables. */
+.map-frame:not(.map-frame--coop) .leaflet-container,
+.map-frame:not(.map-frame--coop) .leaflet-container.leaflet-drag-target { cursor: default; }
+.map-frame:not(.map-frame--coop) .leaflet-container .leaflet-pane { touch-action: pan-y; }
+.map-frame:not(.map-frame--coop) .leaflet-container .leaflet-marker-icon { cursor: pointer; }
+
+/* Mapa manipulable con gestos cooperativos. En cuanto Leaflet activa arrastre y
+   pellizco se queda con TODO el gesto táctil (`touch-action: none`) y la página
+   ya no puede scrollearse con el dedo sobre el lienzo. Aquí se le devuelve al
+   navegador el desplazamiento de un dedo; al mapa le quedan los dos dedos, que
+   es lo único que `pan-x pan-y` no reclama. El `!important` es para ganarle a la
+   regla de leaflet.css, que tiene la misma especificidad. */
+.map-frame--coop .leaflet-container { touch-action: pan-x pan-y !important; }
+/* El lienzo es enfocable (Leaflet le pone `tabindex`) porque las flechas lo
+   desplazan y +/− hacen zoom: ese foco tiene que verse. */
+.map-frame--coop .leaflet-container:focus-visible { outline: none; box-shadow: inset var(--ring); }
 .leaflet-tile-pane {
   filter: grayscale(1) contrast(0.68) brightness(1.16);
   opacity: 0.52;
@@ -875,6 +887,29 @@ select.input {
 .map-zoom button + button { border-top: 1px solid var(--line); }
 .map-zoom button:hover { background: var(--acc-050); color: var(--acc-800); }
 .map-zoom button:focus-visible { outline: none; box-shadow: inset var(--ring); }
+
+/* Aviso del gesto cooperativo: aparece cuando alguien intenta hacer zoom con la
+   rueda a secas, o mover el mapa con un solo dedo, y explica el gesto correcto
+   en lugar de dejar la sensación de que el mapa está roto.
+
+   Píldora centrada, no un velo sobre todo el lienzo: en la landing el mapa ocupa
+   la sección entera y oscurecerla en cada scroll de paso sería mucho más ruido
+   que información. Se desvanece sola y nunca captura el puntero. */
+.map-gesto {
+  position: absolute; left: 50%; top: 50%; z-index: 600;
+  margin: 0; padding: 10px 16px; max-width: calc(100% - var(--space-8));
+  background: var(--ink-900); color: #fff;
+  font: 600 13px/1.35 var(--font-body); text-align: center; text-wrap: balance;
+  border-radius: var(--r-pill); box-shadow: var(--sh-md);
+  opacity: 0; visibility: hidden;
+  transform: translate(-50%, -46%) scale(0.96);
+  transition: opacity .22s var(--ease-io), transform .22s var(--ease-io), visibility .22s;
+  pointer-events: none;
+}
+.map-gesto.is-visible {
+  opacity: 1; visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
 
 /* Marcador de ubicación: gota roja con perforación blanca. El ancla de Leaflet
    está en la punta inferior, así que el pin crece hacia arriba desde el punto
@@ -984,6 +1019,22 @@ select.input {
 .mapa-pleno > app-leaflet-map { position: absolute; inset: 0; }
 .mapa-pleno .map-frame { height: 100%; border-radius: 0; border-inline: 0; }
 .mapa-pleno .map-zoom { right: var(--space-6); bottom: var(--space-10); }
+
+/* Con la superposición montada, la esquina inferior derecha ya NO es sitio para
+   los controles: cae dentro de la columna del panel de tinta, que además de
+   taparlos se quedaría con el clic (`.map-frame` aísla su contexto de apilado,
+   así que ningún z-index de dentro puede pasar por encima de la capa). Se van al
+   carril central que la retícula deja libre a propósito, en fila y pegados al
+   borde inferior. Por debajo de 1081px la capa se desapila y la esquina vuelve a
+   estar despejada. */
+@media (min-width: 1081px) {
+  .mapa-pleno .map-zoom {
+    right: auto; left: 50%; bottom: var(--space-6);
+    transform: translateX(-50%);
+    flex-direction: row;
+  }
+  .mapa-pleno .map-zoom button + button { border-top: 0; border-left: 1px solid var(--line); }
+}
 
 /* Capa de superposición: no captura eventos salvo en sus propias piezas, para
    que el arrastre del mapa siga funcionando entre ellas. */

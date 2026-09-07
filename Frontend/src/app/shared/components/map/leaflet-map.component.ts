@@ -8,6 +8,7 @@ import {
   effect,
   input,
   output,
+  signal,
 } from '@angular/core';
 import * as L from 'leaflet';
 import { IconComponent } from '../icon/icon.component';
@@ -30,6 +31,17 @@ const ACC_050 = '#fdf1ef';
 /** Vista de reserva cuando todavía no hay marcadores: Valle Sagrado, Cusco. */
 const CENTRO_POR_DEFECTO: [number, number] = [-13.3, -72.1];
 
+/** Tope de alejamiento: por debajo, el mapa deja de decir nada útil. */
+const ZOOM_MINIMO = 3;
+
+/* Avisos del gesto cooperativo. La tecla se nombra según el sistema para que el
+   texto coincida con el teclado que el usuario tiene delante. */
+const TECLA_ZOOM =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.userAgent) ? '⌘' : 'Ctrl';
+const PISTA_RUEDA = `Usa ${TECLA_ZOOM} + rueda para hacer zoom`;
+const PISTA_TACTIL = 'Usa dos dedos para mover el mapa';
+const PISTA_MS = 1800;
+
 /**
  * Mapa blanco e interactivo del sistema.
  *
@@ -37,12 +49,30 @@ const CENTRO_POR_DEFECTO: [number, number] = [-13.3, -72.1];
  * dejar una lámina casi blanca: la única saturación de la escena son los
  * marcadores de ubicación en rojo y el círculo de alcance.
  *
- * Por defecto el mapa NO es manipulable (`interactivo = false`): ni zoom, ni
- * arrastre, ni controles. Está para situar los puntos, no para explorarlos, y
- * así no compite nunca con el scroll de la página ni se queda descuadrado.
- * `interactivo = true` devuelve zoom, paneo y la pila de controles.
+ * ## Manipulación
  *
- * Interacción que se conserva siempre:
+ * El mapa es manipulable por defecto (`interactivo = true`): zoom, arrastre,
+ * doble clic, teclado y una pila propia de controles (acercar, alejar y
+ * reencuadrar sobre todos los puntos).
+ *
+ * Los gestos son COOPERATIVOS, que es lo que permite tener un mapa explorable
+ * sin secuestrar el scroll de la página — el problema clásico de un lienzo que
+ * ocupa la sección entera (ver `.mapa-pleno`), donde la rueda del ratón se
+ * convertiría en una lotería: ¿acerco el mapa o bajo la página?
+ *
+ *  · rueda a secas   -> la página scrollea, y el mapa avisa de cómo hacer zoom
+ *  · Ctrl/⌘ + rueda  -> zoom del mapa; también el pellizco de trackpad, que el
+ *                       navegador entrega como rueda con `ctrlKey`
+ *  · un dedo         -> la página scrollea, con el mismo aviso
+ *  · dos dedos       -> paneo y pellizco del mapa
+ *  · ratón           -> arrastre normal, sin modificador: no compite con nada
+ *  · teclado         -> flechas para desplazar y +/− para el zoom con el lienzo
+ *                       enfocado; los botones de la pila son la vía equivalente
+ *
+ * `interactivo = false` deja una lámina de solo lectura: sin zoom, ni arrastre,
+ * ni controles. Sirve para previsualizaciones donde el mapa solo sitúa un punto.
+ *
+ * Interacción que se conserva en ambos modos:
  *  · hover sincronizado en ambos sentidos con la lista (`hoveredId` /
  *    `markerHover`), que es lo que convierte lista y mapa en una sola pieza
  *  · clic en el marcador para seleccionar (`markerClick`)
@@ -59,7 +89,7 @@ const CENTRO_POR_DEFECTO: [number, number] = [-13.3, -72.1];
   imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="map-frame" [class]="'map-frame map-frame--' + alto()">
+    <div #frameEl [class]="'map-frame map-frame--' + alto() + (interactivo() ? ' map-frame--coop' : '')">
       <div #mapEl class="map-frame__canvas" role="application" [attr.aria-label]="ariaLabel()"></div>
       @if (interactivo()) {
         <div class="map-zoom no-imprimir">
@@ -73,6 +103,10 @@ const CENTRO_POR_DEFECTO: [number, number] = [-13.3, -72.1];
             <app-icon name="crosshair" [size]="17" />
           </button>
         </div>
+        <!-- Aviso del gesto cooperativo. Es puramente visual: quien navega con
+             teclado ya tiene los botones y las flechas, y anunciarlo por voz en
+             cada scroll sería ruido. -->
+        <p class="map-gesto no-imprimir" [class.is-visible]="pistaVisible()" aria-hidden="true">{{ pista() }}</p>
       }
     </div>
   `,
@@ -80,6 +114,10 @@ const CENTRO_POR_DEFECTO: [number, number] = [-13.3, -72.1];
 })
 export class LeafletMapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapEl', { static: true }) private mapEl!: ElementRef<HTMLDivElement>;
+  /* El marco, no el lienzo: los escuchadores de gesto se registran en fase de
+     captura sobre un ANCESTRO del contenedor de Leaflet, y así corren siempre
+     antes que los manejadores de Leaflet, reciba el evento el nodo que sea. */
+  @ViewChild('frameEl', { static: true }) private frameEl!: ElementRef<HTMLDivElement>;
 
   readonly markers = input<MapaMarcador[]>([]);
   readonly seleccionadoId = input<number | null>(null);
@@ -98,16 +136,15 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
    */
   readonly etiquetasPermanentes = input(false);
   /**
-   * Mapa de solo lectura: sin zoom (ni rueda, ni doble clic, ni pellizco, ni
-   * teclado), sin arrastre y sin controles.
+   * Mapa manipulable: zoom (rueda con modificador, pellizco a dos dedos, doble
+   * clic, teclado y botones), arrastre y pila de controles.
    *
-   * Es el modo por defecto de todo el sitio público. El mapa está para SITUAR
-   * las estaciones, no para explorarlas: dejando el zoom activo, la rueda del
-   * ratón se convierte en una lotería (¿acerco el mapa o bajo la página?) y en
-   * móvil el pellizco compite con el desplazamiento. Los marcadores siguen
-   * siendo clicables, que es la interacción que sí aporta.
+   * Es el modo por defecto. A `false` queda una lámina de solo lectura para
+   * previsualizaciones donde el mapa únicamente sitúa un punto; en ese caso se
+   * cierran TODAS las vías de manipulación a la vez, porque dejar alguna
+   * abierta descuadra el encuadre sin forma de recuperarlo.
    */
-  readonly interactivo = input(false);
+  readonly interactivo = input(true);
   /**
    * Relleno del encuadre automático, en píxeles: `[izquierda, arriba]` y
    * `[derecha, abajo]`. Es lo que impide que un panel superpuesto sobre el
@@ -121,12 +158,17 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
   readonly markerClick = output<number>();
   readonly markerHover = output<number | null>();
 
+  /** Texto del aviso de gesto; se conserva mientras el aviso se desvanece. */
+  protected readonly pista = signal('');
+  protected readonly pistaVisible = signal(false);
+
   private mapa: L.Map | null = null;
   private capas = new Map<number, L.Marker>();
   private circulo: L.Circle | null = null;
   private ultimaSeleccion: number | null = null;
   private ultimaFirma = '';
   private ultimasEtiquetas: boolean | null = null;
+  private pistaTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     effect(() => {
@@ -153,9 +195,9 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
     const mapa = L.map(this.mapEl.nativeElement, {
       zoomControl: false,
       attributionControl: false,
-      // Cuando no es interactivo se desactiva TODA vía de manipulación, no solo
-      // la rueda: doble clic, pellizco, arrastre, teclado y caja de zoom. Si se
-      // deja alguna abierta, el mapa se descuadra y ya no vuelve a su encuadre.
+      // La rueda la gobierna el gesto cooperativo (ver `onRueda`), no Leaflet:
+      // su manejador se enciende y se apaga según el modificador. Arrancar
+      // apagado es justo lo que deja pasar el scroll de la página.
       scrollWheelZoom: false,
       dragging: interactivo,
       touchZoom: interactivo,
@@ -165,10 +207,11 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
       inertia: interactivo,
       inertiaDeceleration: 2400,
       zoomSnap: 0.25,
+      minZoom: ZOOM_MINIMO,
     });
 
-    // Abajo a la derecha, debajo de la pila de zoom: abajo a la izquierda la
-    // taparía el panel flotante de la lista.
+    // Abajo a la derecha: a la izquierda la taparía el panel flotante de la
+    // lista, y el centro inferior lo ocupa la pila de zoom del lienzo pleno.
     L.control.attribution({ position: 'bottomright', prefix: false }).addTo(mapa);
 
     // Teselas OSM estándar: sin clave de API y sin límite de uso comercial que
@@ -179,12 +222,6 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
       maxZoom: 19,
     }).addTo(mapa);
 
-    if (interactivo) {
-      // La rueda solo hace zoom con el puntero dentro: fuera, la página scrollea.
-      this.mapEl.nativeElement.addEventListener('mouseenter', () => mapa.scrollWheelZoom.enable());
-      this.mapEl.nativeElement.addEventListener('mouseleave', () => mapa.scrollWheelZoom.disable());
-    }
-
     // Leaflet necesita una vista antes de que `getZoom()` devuelva algo: sin
     // ella, el zoom es `undefined`, el `setView` posterior recibe NaN y el
     // proveedor de teselas entra en bucle ("infinite number of tiles"). Pasa en
@@ -193,12 +230,16 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
     mapa.setView(primero ? [primero.lat, primero.lng] : CENTRO_POR_DEFECTO, this.zoom());
 
     this.mapa = mapa;
+    if (interactivo) this.escucharGestos();
     this.sincronizarMarcadores(this.markers(), this.seleccionadoId());
     this.aplicarResaltado(this.hoveredId(), this.seleccionadoId());
     this.pintarRadio(this.markers(), this.seleccionadoId(), this.radioKm(), this.mostrarRadio());
   }
 
   ngOnDestroy(): void {
+    this.olvidarGestos();
+    if (this.pistaTimer) clearTimeout(this.pistaTimer);
+    this.pistaTimer = null;
     // Se sueltan las capas antes que el mapa y se aísla el desmontaje: un error
     // al destruir Leaflet no debe abortar la navegación de Angular.
     try {
@@ -224,6 +265,119 @@ export class LeafletMapComponent implements AfterViewInit, OnDestroy {
   reencuadrar(): void {
     this.ajustarVista(this.markers(), true);
   }
+
+  /* ── gestos cooperativos ──────────────────────────────────────────────── */
+
+  private escucharGestos(): void {
+    const marco = this.frameEl.nativeElement;
+    // `passive: false` en la rueda: hay que poder cancelar el zoom DEL NAVEGADOR
+    // cuando el gesto llega con Ctrl/⌘. Los táctiles sí son pasivos: no cancelan
+    // nada, solo apagan el arrastre antes de que Leaflet lo enganche.
+    marco.addEventListener('wheel', this.onRueda, { capture: true, passive: false });
+    marco.addEventListener('touchstart', this.onTactilInicio, { capture: true, passive: true });
+    marco.addEventListener('touchmove', this.onTactilMovimiento, { capture: true, passive: true });
+    marco.addEventListener('touchend', this.onTactilFin, { capture: true, passive: true });
+    marco.addEventListener('touchcancel', this.onTactilFin, { capture: true, passive: true });
+    // El modificador se vigila en la ventana para que la rueda llegue con el
+    // zoom ya abierto: encenderlo dentro del propio evento perdería ese primer
+    // paso, porque un escuchador añadido durante el reparto no lo recibe.
+    window.addEventListener('keydown', this.onModificador);
+    window.addEventListener('keyup', this.onModificador);
+    window.addEventListener('blur', this.onSalidaDeFoco);
+  }
+
+  private olvidarGestos(): void {
+    const marco = this.frameEl?.nativeElement;
+    if (marco) {
+      marco.removeEventListener('wheel', this.onRueda, { capture: true });
+      marco.removeEventListener('touchstart', this.onTactilInicio, { capture: true });
+      marco.removeEventListener('touchmove', this.onTactilMovimiento, { capture: true });
+      marco.removeEventListener('touchend', this.onTactilFin, { capture: true });
+      marco.removeEventListener('touchcancel', this.onTactilFin, { capture: true });
+    }
+    window.removeEventListener('keydown', this.onModificador);
+    window.removeEventListener('keyup', this.onModificador);
+    window.removeEventListener('blur', this.onSalidaDeFoco);
+  }
+
+  /**
+   * Rueda sobre el mapa. Con Ctrl/⌘ —o con el pellizco de trackpad, que el
+   * navegador entrega como rueda con `ctrlKey`— el zoom es del mapa; sin
+   * modificador el evento sigue su camino y la página scrollea con normalidad.
+   */
+  private readonly onRueda = (e: WheelEvent): void => {
+    if (!this.mapa) return;
+    if (e.ctrlKey || e.metaKey) {
+      this.abrirZoomRueda();
+      e.preventDefault(); // si no, el navegador haría zoom de PÁGINA
+      this.ocultarPista();
+    } else {
+      this.cerrarZoomRueda();
+      this.mostrarPista(PISTA_RUEDA);
+    }
+  };
+
+  private readonly onModificador = (e: KeyboardEvent): void => {
+    if (e.ctrlKey || e.metaKey) this.abrirZoomRueda();
+    else this.cerrarZoomRueda();
+  };
+
+  /** Si la ventana pierde el foco no llega el `keyup` y el zoom quedaría abierto. */
+  private readonly onSalidaDeFoco = (): void => this.cerrarZoomRueda();
+
+  /**
+   * Un dedo desplaza la página; dos manipulan el mapa.
+   *
+   * El arrastre de Leaflet se apaga en fase de captura, antes de que su propio
+   * escuchador de `touchstart` (registrado más abajo, en el contenedor) llegue
+   * a correr: al desengancharlo durante el reparto del evento, el gesto queda
+   * íntegro para el navegador y el scroll no se secuestra. El pellizco a dos
+   * dedos lo atiende el manejador `touchZoom`, que nunca se toca y que además
+   * de escalar desplaza el centro.
+   */
+  private readonly onTactilInicio = (e: TouchEvent): void => {
+    if (e.touches.length >= 2) {
+      this.ocultarPista();
+      return;
+    }
+    this.mapa?.dragging.disable();
+  };
+
+  private readonly onTactilMovimiento = (e: TouchEvent): void => {
+    if (e.touches.length === 1) this.mostrarPista(PISTA_TACTIL);
+  };
+
+  /** Fin del gesto: se devuelve el arrastre, que es el que usa el ratón. */
+  private readonly onTactilFin = (e: TouchEvent): void => {
+    if (e.touches.length === 0) this.mapa?.dragging.enable();
+  };
+
+  private abrirZoomRueda(): void {
+    const rueda = this.mapa?.scrollWheelZoom;
+    if (rueda && !rueda.enabled()) rueda.enable();
+  }
+
+  private cerrarZoomRueda(): void {
+    const rueda = this.mapa?.scrollWheelZoom;
+    if (rueda && rueda.enabled()) rueda.disable();
+  }
+
+  private mostrarPista(texto: string): void {
+    if (this.pistaTimer) clearTimeout(this.pistaTimer);
+    this.pista.set(texto);
+    this.pistaVisible.set(true);
+    // El texto NO se borra al ocultar: si desapareciera de golpe, el aviso se
+    // desvanecería vacío.
+    this.pistaTimer = setTimeout(() => this.pistaVisible.set(false), PISTA_MS);
+  }
+
+  private ocultarPista(): void {
+    if (this.pistaTimer) clearTimeout(this.pistaTimer);
+    this.pistaTimer = null;
+    this.pistaVisible.set(false);
+  }
+
+  /* ── marcadores y vista ───────────────────────────────────────────────── */
 
   /**
    * Marcador de ubicación clásico (gota con perforación central) en el rojo de
