@@ -2,6 +2,26 @@ const db = require("../config/database");
 const { calcularDistanciaTotal, generarFolio, construirTimeline } = require("../utils/ruta.util");
 const { sincronizarEstacion } = require("../services/openMeteo.service");
 
+/**
+ * CASO DE USO PRINCIPAL: generar el informe de la ruta turística peatonal.
+ *
+ * Es el punto donde se cruzan las tres fuentes que describe el caso:
+ *   PeruRail     -> la estación de partida y el servicio de tren (horario y tarifa)
+ *   Travel Group -> la zona turística y los hitos del recorrido a pie
+ *   SENAMHI      -> la previsión del clima para la fecha del viaje (vía Open-Meteo)
+ *
+ * El turista elige estación + zona + preferencias + fecha; el sistema calcula el
+ * recorrido de ida y vuelta, lo sella con un folio irrepetible (INF-AAAA-NNNNNN) y
+ * lo guarda en `rut_informe`. Ese folio es lo único que hace falta para volver a
+ * abrir el informe, así que el turista puede guardarlo o compartirlo sin tener
+ * cuenta en el sistema.
+ */
+
+/**
+ * Hitos (puntos de referencia) del tramo a pie, en el orden en que se encuentran
+ * al ir. La vuelta reutiliza esta misma lista invertida: ver `construirTimeline`
+ * en utils/ruta.util.js.
+ */
 async function obtenerHitos(zonaId) {
   const [hitos] = await db.query(
     "SELECT * FROM zon_hito WHERE zon_id_zona = ? ORDER BY zon_orden ASC",
@@ -10,6 +30,15 @@ async function obtenerHitos(zonaId) {
   return hitos;
 }
 
+/**
+ * Tren sugerido para llegar a la estación: el primero que sale entre los que están
+ * activos Y publicados. Se exige `publicado` porque el informe es material que ve
+ * el ciudadano; anunciar ahí un servicio que el MTC todavía no aprobó sería
+ * publicarlo por la puerta de atrás.
+ *
+ * Devuelve null si la estación no tiene servicios ofrecibles: el informe se emite
+ * igual, solo que sin la sección de tren.
+ */
 async function obtenerServicioPrincipal(estacionId) {
   const [[servicio]] = await db.query(
     `SELECT s.*, o.est_nombre AS origenNombre, d.est_nombre AS destinoNombre
@@ -23,6 +52,14 @@ async function obtenerServicioPrincipal(estacionId) {
   return servicio || null;
 }
 
+/**
+ * Clima de la fecha del viaje: primero la caché de `cli_prevision` y, si ese día
+ * todavía no está guardado, se sincroniza con Open-Meteo en el momento.
+ *
+ * El `catch` que devuelve null es deliberado: el clima es un dato de apoyo, no
+ * parte del cálculo de la ruta. Si la API externa está caída, el informe sale sin
+ * esa sección en lugar de fallar entero por algo accesorio.
+ */
 async function obtenerClima(estacion, fecha) {
   const [[cache]] = await db.query(
     "SELECT * FROM cli_prevision WHERE est_id_estacion = ? AND cli_fecha = ?",
@@ -36,7 +73,18 @@ async function obtenerClima(estacion, fecha) {
   }
 }
 
-/** Arma el payload completo de un informe (encabezado + 5 secciones) a partir de la fila persistida. */
+/**
+ * Arma el payload completo del informe a partir de la fila persistida.
+ *
+ * En `rut_informe` solo se guarda el resultado del cálculo (distancia, tiempo y
+ * dificultad) junto con las preferencias con que se pidió; la estación, la zona,
+ * los hitos, el tren y el clima se releen aquí en cada consulta. Así un informe
+ * reabierto muestra el horario y el pronóstico vigentes, sin que cambien los
+ * números con los que se emitió.
+ *
+ * Devuelve las cinco secciones que pinta el frontend: estación de partida, zona
+ * turística con sus hitos, servicio ferroviario, clima y ruta a pie.
+ */
 async function armarPayload(informe) {
   const [[estacion]] = await db.query("SELECT * FROM est_estacion WHERE est_id_estacion = ?", [informe.est_id_estacion]);
   const [[zona]] = await db.query("SELECT * FROM zon_zona_turistica WHERE zon_id_zona = ?", [informe.zon_id_zona]);
@@ -72,6 +120,13 @@ async function armarPayload(informe) {
   };
 }
 
+/**
+ * POST /api/informes — genera el informe. Endpoint público: el turista no necesita
+ * cuenta, las credenciales son cosa del panel de administración.
+ *
+ * Cinco pasos: (1) la estación es visible, (2) la zona es visible, (3) la zona
+ * cuelga de esa estación, (4) se calcula el recorrido y (5) se persiste con folio.
+ */
 const crear = async (req, res) => {
   try {
     const { estacionId, zonaId, intereses, dificultadMax, minutosMax, fecha } = req.body;
@@ -97,9 +152,19 @@ const crear = async (req, res) => {
       return res.status(400).json({ success: false, mensaje: "La zona turística no corresponde a la estación seleccionada" });
     }
 
+    // El recorrido informado es de ida y vuelta: la zona registra solo los km de
+    // ida, así que se duplican. Los minutos, en cambio, ya vienen medidos ida y
+    // vuelta, y la dificultad del informe es la de la zona que se recorre.
     const distanciaTotalKm = calcularDistanciaTotal(zona.zon_distancia_km);
     const tiempoTotalMin = zona.zon_minutos_ida_vuelta;
 
+    // El folio se construye sobre el id autoincremental, que solo se conoce DESPUÉS
+    // de insertar, y `rut_codigo` no admite nulos ni repetidos. Por eso la fila nace
+    // con un código temporal único y el UPDATE siguiente lo cambia por el definitivo.
+    //
+    // Las preferencias del turista (intereses, dificultad y minutos máximos) se
+    // guardan tal cual: aquí no filtran nada —eso ya ocurrió al listar zonas— pero
+    // quedan en el informe como constancia de con qué criterios se armó.
     const [insercion] = await db.query(
       `INSERT INTO rut_informe
         (rut_codigo, est_id_estacion, zon_id_zona, rut_intereses, rut_dificultad_max, rut_minutos_max, rut_fecha_viaje, rut_distancia_total_km, rut_tiempo_total_min, rut_dificultad_resultado)
@@ -117,6 +182,12 @@ const crear = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/informes/:codigo — recupera por folio un informe ya emitido.
+ *
+ * Público y sin caducidad: es lo que permite volver a abrirlo desde el enlace
+ * guardado, o consultarlo en el andén el día del viaje ya con el clima al día.
+ */
 const obtener = async (req, res) => {
   try {
     const [[informe]] = await db.query("SELECT * FROM rut_informe WHERE rut_codigo = ?", [req.params.codigo]);

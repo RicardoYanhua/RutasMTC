@@ -10,6 +10,7 @@ const { esPeticionPublica } = require("../middleware/auth.middleware");
  * estación retirada sería un dato falso, no un dato incompleto.
  */
 
+/** Cada servicio viaja con el nombre de sus dos estaciones, no con sus ids. */
 const SELECT_BASE = `
   SELECT s.*, o.est_nombre AS origenNombre, d.est_nombre AS destinoNombre
   FROM est_servicio s
@@ -17,12 +18,20 @@ const SELECT_BASE = `
   JOIN est_estacion d ON d.est_id_estacion = s.est_id_estacion_destino
 `;
 
+/** Lo que puede ver el ciudadano: el tren publicado y sus dos estaciones publicadas. */
 const CONDICION_PUBLICA = `
   s.est_serv_activo = 1 AND s.est_serv_publicado = 1
   AND o.est_activo = 1 AND o.est_publicado = 1
   AND d.est_activo = 1 AND d.est_publicado = 1
 `;
 
+/**
+ * GET /api/servicios[?estacionId=] — horarios y tarifas.
+ *
+ * Con `estacionId` devuelve solo los trenes que SALEN de esa estación, que es la
+ * consulta que hacen el planificador y el informe. Los filtros se acumulan en un
+ * arreglo de condiciones para no repetir la consulta en cuatro variantes.
+ */
 const listar = async (req, res) => {
   try {
     const { estacionId } = req.query;
@@ -43,11 +52,18 @@ const listar = async (req, res) => {
   }
 };
 
+/** Relee el servicio ya con los nombres de estación y lo devuelve tras escribir. */
 const devolver = async (id, res, mensaje, codigoHttp = 200) => {
   const [[fila]] = await db.query(`${SELECT_BASE} WHERE s.est_id_servicio = ?`, [id]);
   return res.status(codigoHttp).json({ success: true, mensaje, data: fila });
 };
 
+/**
+ * POST /api/servicios — alta de un tren. Solo PeruRail (y el gestor MTC).
+ *
+ * Nace activo pero despublicado (1, 0): PeruRail carga su oferta cuando la tiene
+ * cerrada y el MTC decide cuándo aparece en el sitio.
+ */
 const crear = async (req, res) => {
   try {
     const { estacionOrigenId, estacionDestinoId, nombreServicio, horaSalida, horaRetorno, minutosTransito, precio } = req.body;
@@ -64,6 +80,10 @@ const crear = async (req, res) => {
   }
 };
 
+/**
+ * PUT /api/servicios/:id — cambio de horario, tránsito o tarifa. Solo PeruRail
+ * (y MTC). Es la operación de temporada más frecuente del módulo.
+ */
 const actualizar = async (req, res) => {
   try {
     const { estacionOrigenId, estacionDestinoId, nombreServicio, horaSalida, horaRetorno, minutosTransito, precio } = req.body;

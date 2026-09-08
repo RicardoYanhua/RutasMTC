@@ -11,6 +11,11 @@ const { borrarImagen } = require("../middleware/upload.middleware");
  * resolviendo su clave foránea.
  */
 
+/**
+ * Consulta base del módulo. Los dos subconteos son los que el panel muestra en
+ * cada tarjeta; cuentan solo filas activas, para que dar de baja una zona o un
+ * servicio se refleje enseguida en el número de su estación.
+ */
 const SELECT_BASE = `
   SELECT e.*,
     (SELECT COUNT(*) FROM zon_zona_turistica z
@@ -28,6 +33,12 @@ const SELECT_BASE = `
 const filtroVisibilidad = (req) =>
   esPeticionPublica(req) ? "WHERE e.est_activo = 1 AND e.est_publicado = 1" : "";
 
+/**
+ * GET /api/estaciones — catálogo, ordenado por nombre.
+ *
+ * Sirve a dos consumidores con una sola consulta: el planificador del ciudadano y
+ * la tabla del panel. Lo que cambia entre ambos es solo `filtroVisibilidad`.
+ */
 const listar = async (req, res) => {
   try {
     const [filas] = await db.query(`${SELECT_BASE} ${filtroVisibilidad(req)} ORDER BY e.est_nombre ASC`);
@@ -37,6 +48,13 @@ const listar = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/estaciones/:id — detalle de una estación.
+ *
+ * A quien no tiene sesión se le responde 404 —y no 403— cuando la estación existe
+ * pero está de baja o sin publicar: para el público esa fila sencillamente no
+ * forma parte del catálogo, y un 403 delataría que sí existe.
+ */
 const obtener = async (req, res) => {
   try {
     const [[fila]] = await db.query(`${SELECT_BASE} WHERE e.est_id_estacion = ?`, [req.params.id]);
@@ -52,11 +70,21 @@ const obtener = async (req, res) => {
   }
 };
 
+/**
+ * Relee la fila con sus subconteos y la devuelve. Se usa tras cada escritura para
+ * que el panel reciba el registro ya consolidado y no tenga que volver a pedirlo.
+ */
 const devolver = async (id, res, mensaje, codigo = 200) => {
   const [[fila]] = await db.query(`${SELECT_BASE} WHERE e.est_id_estacion = ?`, [id]);
   return res.status(codigo).json({ success: true, mensaje, data: fila });
 };
 
+/**
+ * POST /api/estaciones — alta de una estación. Solo PeruRail (y el gestor MTC).
+ *
+ * El código se guarda en mayúsculas porque es la clave con la que se reconoce la
+ * estación y es única en la tabla: así "cus" y "CUS" no llegan a convivir.
+ */
 const crear = async (req, res) => {
   try {
     const { codigo, nombre, region, altitudMsnm, andenes, latitud, longitud, badge, imagenUrl } = req.body;
@@ -86,6 +114,12 @@ const crear = async (req, res) => {
   }
 };
 
+/**
+ * PUT /api/estaciones/:id — edición del dato logístico. Solo PeruRail (y MTC).
+ *
+ * Editar no toca la publicación: una estación ya publicada sigue publicada con sus
+ * datos nuevos, porque corregir un andén o una altitud no es volver a proponerla.
+ */
 const actualizar = async (req, res) => {
   try {
     const { codigo, nombre, region, altitudMsnm, andenes, latitud, longitud, badge, imagenUrl } = req.body;

@@ -18,6 +18,13 @@ const ROLES = {
   MTC: "mtc",
 };
 
+/**
+ * Puerta de entrada al panel: exige un token válido en `Authorization: Bearer` y
+ * deja al usuario firmado en `req.usuario` para los siguientes middlewares.
+ *
+ * Distingue el token caducado del inválido porque al operador le sirve saber que
+ * solo tiene que volver a entrar; en ambos casos la petición se detiene con 401.
+ */
 const verificarToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -60,6 +67,11 @@ const tokenOpcional = (req, res, next) => {
   next();
 };
 
+/**
+ * Fábrica de guardias por rol: `verificarRol("perurail", "mtc")` deja pasar a esos
+ * dos y responde 403 al resto. Se aplica en las rutas siempre DESPUÉS de
+ * `verificarToken`, que es quien rellena `req.usuario`.
+ */
 const verificarRol = (...rolesPermitidos) => (req, res, next) => {
   if (!req.usuario || !rolesPermitidos.includes(req.usuario.rol)) {
     return res.status(403).json({ success: false, mensaje: "Tu rol no tiene permisos para esta acción" });

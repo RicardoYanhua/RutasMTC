@@ -1747,22 +1747,43 @@ select.input {
 
 /* ── impresión ───────────────────────────────────────────────────────────── */
 
+/* El "Descargar PDF" del informe es `window.print()`: el PDF lo genera el propio
+   navegador con esta hoja de estilos, así que imprimir y descargar son lo mismo.
+
+   Aquí va solo lo común a todo el sistema —la hoja, el cromo que no se imprime y
+   el color—. Lo específico del informe vive en `informe.component.css`, porque
+   Angular encapsula los estilos de componente (`.documento[_ngcontent-x]`) y una
+   regla global con el mismo selector pierde por especificidad. */
+
+@page {
+  size: A4;
+  /* Margen algo mayor arriba y abajo: es donde el navegador coloca su propia
+     cabecera (URL y fecha) cuando el usuario la deja activada. */
+  margin: 12mm 10mm;
+}
+
 @media print {
   .no-imprimir { display: none !important; }
-  body { background: #fff; }
+  html, body { background: #fff; }
   .table-wrap { border: 0; overflow: visible; }
 
-  /* Informe turístico. La portada en tinta llena vaciaría un cartucho: en papel
-     va en blanco con un filete, y se retira la fotografía de fondo. */
-  .documento { border: 0; border-radius: 0; box-shadow: none; max-width: none; padding: 0; }
-  .doc-portada { background: #fff !important; color: var(--ink-900); border-bottom: 2px solid var(--ink-900); }
-  .doc-portada h1, .doc-portada .doc-portada__meta dd { color: var(--ink-900); }
-  .doc-portada .doc-portada__meta dt { color: var(--ink-600); }
-  .doc-portada .doc-portada__meta { border-top-color: var(--line-strong); }
-  .doc-portada__foto, .doc-portada__velo { display: none; }
-  .doc-portada__ruta { color: var(--acc-800); }
-  .doc-seccion { break-inside: avoid; padding-inline: 0; }
-  .cinta__hito--tren .cinta__icono { background: #fff; color: var(--ink-900); border-color: var(--ink-900); }
+  /* Los rellenos del envoltorio del planificador dejarían casi media hoja en
+     blanco antes del documento. Llevan !important porque las reglas originales
+     son estilos de componente y ganarían por especificidad. */
+  main, .wizard-paso { padding: 0 !important; margin: 0 !important; }
+
+  /* El informe conserva sus fondos y su fotografía en el PDF (ver el bloque de
+     impresión de `informe.component.css`); esta línea cubre lo que queda dentro
+     de componentes hijos —los iconos, la foto de la portada—, que no reciben el
+     atributo de encapsulación del informe. */
+  .documento, .documento * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* El grano de las superficies de tinta se apoya en `mix-blend-mode`, que al
+     rasterizar la página puede salir como un rectángulo gris. Es una textura
+     imperceptible en papel: se retira y el fondo se imprime limpio. */
+  .ink--grano::after { display: none; }
+
+  p, li { orphans: 3; widows: 3; }
 }
 
 /* ── movimiento reducido ─────────────────────────────────────────────────── */

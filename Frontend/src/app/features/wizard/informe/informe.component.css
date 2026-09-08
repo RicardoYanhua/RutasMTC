@@ -246,5 +246,97 @@
   .escalera__cuerpo { grid-column: 2; }
 }
 
-/* Las reglas de `@media print` de este documento viven en `styles.css`, junto
-   al resto del bloque de impresión del sistema. */
+/* ── impresión · el PDF ───────────────────────────────────────────────────
+   "Descargar PDF" abre el diálogo de impresión del navegador: el PDF lo produce
+   él a partir de ESTA pantalla. Por eso el objetivo aquí no es rediseñar nada,
+   sino impedir las tres cosas que el navegador deshace por su cuenta y que
+   dejaban el papel sin parecerse al informe de la web.
+
+   1 · COLOR. Al imprimir se descartan fondos e imágenes salvo que se pida lo
+       contrario con `print-color-adjust: exact`. Sin esa línea se pierden la
+       portada de tinta, la foto de la zona, las cifras sobre gris, los círculos
+       de la línea de tiempo, las barras del clima y las etiquetas: justo lo que
+       distingue a este documento de un listado de texto.
+
+   2 · RETÍCULA. La hoja mide unos 700 px de ancho útil, así que se disparan las
+       consultas de medios de móvil de más arriba y el documento se apila en una
+       columna. Aquí se restaura la retícula de escritorio —cuatro cifras, tres
+       fuentes, la jornada en horizontal—, que es la que se ve en el sistema.
+
+   3 · CORTES DE PÁGINA. Sin instrucciones, el navegador parte por donde le
+       toque y deja media tarjeta en cada hoja.
+
+   Estas reglas viven en el CSS del componente y no en `styles.css` a propósito:
+   Angular añade el atributo de encapsulación (`.documento[_ngcontent-x]`), de
+   modo que una regla global `.documento` pierde por especificidad y no llega a
+   aplicarse. Al estar aquí, y al final del archivo, ganan por orden de cascada
+   tanto a las reglas base como a las de móvil.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media print {
+  /* 1 · colores tal y como se ven en pantalla. Se pide solo dentro del informe:
+     el resto del sistema sigue imprimiéndose sobre blanco. La propiedad se
+     hereda, pero se repite en los descendientes por si algún motor no lo hace. */
+  .documento,
+  .documento * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* El marco flotante (borde, sombra y esquinas redondeadas) es lenguaje de
+     pantalla: en papel la hoja ya hace de marco y el documento ocupa el ancho
+     útil que le deja el margen de @page. `overflow: visible` es obligatorio,
+     porque con el recorte activo el navegador se come lo que cae en la segunda
+     hoja. */
+  .documento {
+    max-width: none;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  /* ── 2 · retícula de escritorio ─────────────────────────────────────────── */
+
+  .doc-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .doc-fuentes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .doc-filtro { grid-template-columns: 1.6fr 1fr 1fr; gap: var(--space-6); }
+
+  /* La cinta vuelve a leerse de izquierda a derecha, con el filete horizontal
+     cruzando los hitos. Se deshacen una a una las reglas del bloque de 980px. */
+  .cinta {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .cinta::before {
+    left: 18px; right: 18px; top: 17px; bottom: auto;
+    width: auto; height: 2px;
+  }
+  .cinta__hito {
+    display: flex;
+    flex-direction: column;
+    align-items: normal;
+    gap: 5px;
+  }
+  .cinta__icono { grid-row: auto; margin-bottom: var(--space-2); }
+  .cinta__hora, .cinta__titulo, .cinta__detalle { grid-column: auto; }
+  /* Cinco columnas en 700 px son más estrechas que en pantalla: se baja un
+     punto la tipografía para que los rótulos no se partan en cuatro líneas. */
+  .cinta__hora { font-size: 17px; }
+  .cinta__titulo { font-size: 12.5px; }
+  .cinta__detalle { font-size: 11px; }
+
+  /* ── 3 · cortes de página ───────────────────────────────────────────────── */
+
+  /* La portada nunca se parte, y arrastra consigo el arranque de las cifras. */
+  .doc-portada { break-inside: avoid; break-after: avoid; }
+  .doc-titulo { break-after: avoid; }
+  .doc-seccion { break-inside: avoid; }
+  /* Excepción: el recorrido a pie puede ser más largo que una hoja. Se le deja
+     partir, pero nunca por dentro de un tramo. */
+  .doc-seccion[aria-labelledby="doc-recorrido"] { break-inside: auto; }
+  .escalera__paso { break-inside: avoid; }
+  .doc-kpi, .doc-fuente, .cinta, .doc-filtro__bloque, .doc-pie { break-inside: avoid; }
+}

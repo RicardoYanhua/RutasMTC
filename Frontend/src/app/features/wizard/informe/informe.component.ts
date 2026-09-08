@@ -206,7 +206,31 @@ export class InformeComponent implements OnInit {
     afterNextRender(() => this.documento && fadeUp(this.documento.nativeElement, { y: 12 }), { injector: this.injector });
   }
 
+  /**
+   * El PDF lo genera el propio navegador: "Descargar PDF" abre su diálogo de
+   * impresión, donde "Guardar como PDF" produce el documento. El aspecto lo
+   * gobierna el bloque `@media print` de `informe.component.css`, escrito para
+   * que la hoja salga igual que esta pantalla.
+   *
+   * Chrome y Edge proponen el título de la página como nombre del archivo. Se
+   * les presta el folio mientras dura el diálogo —así el PDF se guarda como
+   * "Informe turístico INF-2026-000123" y no como el título del sitio— y se
+   * devuelve el título original al cerrarlo.
+   */
   descargarPdf(): void {
+    const codigo = this.informe()?.codigo;
+    if (!codigo) {
+      window.print();
+      return;
+    }
+
+    const titulo = document.title;
+    const restaurar = () => {
+      document.title = titulo;
+      window.removeEventListener('afterprint', restaurar);
+    };
+    window.addEventListener('afterprint', restaurar);
+    document.title = `Informe turístico ${codigo}`;
     window.print();
   }
 

@@ -1,3 +1,12 @@
+/**
+ * Integración con Open-Meteo: la vía por la que entra al sistema el dato del clima
+ * que el caso atribuye al SENAMHI. Es una API pública y gratuita, así que no hay
+ * clave que rotar ni cuota que administrar.
+ *
+ * Todo lo que se trae de ahí queda guardado en `cli_prevision`, de modo que la
+ * aplicación siga respondiendo aunque el servicio externo no conteste.
+ */
+
 const db = require("../config/database");
 
 const OPEN_METEO_URL = process.env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast";
@@ -27,6 +36,13 @@ const CONDICIONES = {
 
 const condicionDeCodigo = (codigo) => CONDICIONES[codigo] || "Variable";
 
+/**
+ * Traduce las cifras del pronóstico al consejo práctico que se le da al caminante.
+ *
+ * El orden de los `if` es una prioridad, no una casualidad: se avisa primero de lo
+ * que más arruina una caminata. Los umbrales (50 % de lluvia, UV 8, 30 km/h) son
+ * los habituales para recorridos a pie de altura como los del corredor turístico.
+ */
 function calcularAviso({ probLluvia, uvIndice, vientoKmh }) {
   if (probLluvia >= 50) return "Lleva ropa impermeable: alta probabilidad de lluvia durante el recorrido.";
   if (uvIndice >= 8) return "Usa protector solar y sombrero: índice UV muy alto en la zona.";
@@ -57,6 +73,14 @@ async function consultarPronostico(latitud, longitud) {
   return datos.daily;
 }
 
+/**
+ * Extrae del pronóstico el día que se pidió.
+ *
+ * Open-Meteo publica 16 días; si el turista planifica más allá se devuelve el
+ * último disponible marcado como aproximado (`esAproximado`), y esa advertencia
+ * viaja con el aviso hasta el informe. Es preferible una orientación advertida a
+ * no dar ninguna.
+ */
 function diaParaFecha(daily, fechaISO) {
   const indice = daily.time.indexOf(fechaISO);
   const i = indice >= 0 ? indice : daily.time.length - 1; // si excede el rango, usa el último disponible
@@ -80,8 +104,13 @@ function diaParaFecha(daily, fechaISO) {
 async function sincronizarEstacion(estacion, fechaISO) {
   const daily = await consultarPronostico(estacion.est_latitud, estacion.est_longitud);
   const dia = diaParaFecha(daily, fechaISO);
+  // Al aviso se le pega la advertencia de que el pronóstico es aproximado, para que
+  // esa reserva viaje pegada al consejo y llegue así hasta el informe.
   const aviso = calcularAviso(dia) + (dia.esAproximado ? " (pronóstico aproximado, fuera del rango de 16 días)." : "");
 
+  // Upsert contra la clave (estación, fecha): volver a sincronizar el mismo día
+  // refresca la fila en lugar de duplicarla. Después se relee usando la fecha REAL
+  // del pronóstico, que no siempre es la que se pidió (ver diaParaFecha).
   await db.query(
     `INSERT INTO cli_prevision
        (est_id_estacion, cli_fecha, cli_temp, cli_condicion, cli_sensacion, cli_prob_lluvia, cli_viento_kmh, cli_uv_indice, cli_aviso, cli_fuente)
@@ -100,6 +129,13 @@ async function sincronizarEstacion(estacion, fechaISO) {
   return fila;
 }
 
+/**
+ * Sincroniza todas las estaciones para una fecha. La usa el cron diario.
+ *
+ * El try/catch va DENTRO del bucle a propósito: que una estación falle no debe
+ * dejar sin actualizar a las demás. Devuelve el detalle por estación para que el
+ * cron pueda registrar cuántas salieron bien.
+ */
 async function sincronizarTodas(fechaISO) {
   const [estaciones] = await db.query("SELECT * FROM est_estacion");
   const resultados = [];

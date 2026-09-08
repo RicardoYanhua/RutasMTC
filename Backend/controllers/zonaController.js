@@ -15,14 +15,22 @@ const { borrarImagen } = require("../middleware/upload.middleware");
  * ruta ofrecible, por buena que sea la zona.
  */
 
+/** Cada zona viaja con el nombre y la imagen de su estación: se muestran juntas. */
 const SELECT_BASE = `
   SELECT z.*, e.est_nombre AS estacionNombre, e.est_imagen_url AS estacionImagenUrl
   FROM zon_zona_turistica z
   JOIN est_estacion e ON e.est_id_estacion = z.zon_id_estacion
 `;
 
+/** Visibilidad pública: la zona publicada Y la estación desde la que se camina. */
 const CONDICION_PUBLICA = "z.zon_activo = 1 AND z.zon_publicado = 1 AND e.est_activo = 1 AND e.est_publicado = 1";
 
+/**
+ * Añade a cada zona sus hitos con UNA sola consulta para todas (`IN (?)`) en lugar
+ * de una por zona, y luego los reparte en memoria agrupándolos por zona. Con las
+ * treinta y tantas zonas del catálogo, la diferencia entre 1 y 31 consultas ya se
+ * nota al abrir el planificador.
+ */
 async function adjuntarHitos(zonas) {
   if (zonas.length === 0) return zonas;
   const ids = zonas.map((z) => z.zon_id_zona);
@@ -38,6 +46,13 @@ async function adjuntarHitos(zonas) {
   return zonas.map((z) => ({ ...z, hitos: porZona.get(z.zon_id_zona) || [] }));
 }
 
+/**
+ * GET /api/zonas — catálogo y buscador del planificador.
+ *
+ * Los filtros son exactamente los del formulario que llena el turista: estación de
+ * partida, intereses, dificultad máxima y tiempo disponible. Se aplican en SQL y no
+ * en memoria, y todos son opcionales: sin ninguno devuelve el catálogo entero.
+ */
 const listar = async (req, res) => {
   try {
     const { estacionId, intereses, dificultadMax, minutosMax } = req.query;
@@ -50,6 +65,8 @@ const listar = async (req, res) => {
       condiciones.push("z.zon_id_estacion = ?");
       parametros.push(estacionId);
     }
+    // Intereses: el turista marca varias categorías y le vale cualquiera de ellas,
+    // así que es un IN, no una conjunción.
     if (intereses) {
       const lista = String(intereses).split(",").filter(Boolean);
       if (lista.length) {
@@ -57,11 +74,16 @@ const listar = async (req, res) => {
         parametros.push(lista);
       }
     }
+    // "Máxima" es un techo, no una igualdad: quien acepta Exigente también acepta
+    // Fácil y Moderada. DIFN (utils/ruta.util.js) pone números a las etiquetas para
+    // poder ordenarlas, ya que la columna guarda el texto.
     if (dificultadMax && DIFN[dificultadMax]) {
       const permitidas = Object.keys(DIFN).filter((d) => DIFN[d] <= DIFN[dificultadMax]);
       condiciones.push("z.zon_dificultad IN (?)");
       parametros.push(permitidas);
     }
+    // El tiempo del que dispone el turista se contrasta contra el recorrido completo
+    // de ida y vuelta: de nada sirve llegar si no le da para volver al andén.
     if (minutosMax) {
       condiciones.push("z.zon_minutos_ida_vuelta <= ?");
       parametros.push(minutosMax);
@@ -76,6 +98,7 @@ const listar = async (req, res) => {
   }
 };
 
+/** GET /api/zonas/:id — ficha con sus hitos. Al público le oculta lo no publicado. */
 const obtener = async (req, res) => {
   try {
     const where = esPeticionPublica(req) ? `WHERE z.zon_id_zona = ? AND ${CONDICION_PUBLICA}` : "WHERE z.zon_id_zona = ?";
@@ -102,12 +125,19 @@ const siguienteCodigo = async () => {
   return `ZN-${String(Number(fila.ultimo) + 1).padStart(2, "0")}`;
 };
 
+/** Relee la zona con su estación y sus hitos, y la devuelve tras cada escritura. */
 const devolver = async (id, res, mensaje, codigoHttp = 200) => {
   const [[fila]] = await db.query(`${SELECT_BASE} WHERE z.zon_id_zona = ?`, [id]);
   const [conHitos] = await adjuntarHitos([fila]);
   return res.status(codigoHttp).json({ success: true, mensaje, data: conHitos });
 };
 
+/**
+ * POST /api/zonas — alta. Solo Travel Group (y el gestor MTC).
+ *
+ * Nace activa pero despublicada (1, 0) y el código ZN-NN lo asigna el sistema, no
+ * el operador: es un correlativo, y dejarlo escribir a mano invita al duplicado.
+ */
 const crear = async (req, res) => {
   try {
     const {
@@ -131,6 +161,7 @@ const crear = async (req, res) => {
   }
 };
 
+/** PUT /api/zonas/:id — edición de la ficha. Solo Travel Group (y MTC). */
 const actualizar = async (req, res) => {
   try {
     const {
@@ -139,6 +170,8 @@ const actualizar = async (req, res) => {
     } = req.body;
     const nuevaImagen = imagenUrl || null;
 
+    // Igual que en estaciones: se lee la imagen previa antes de escribir para poder
+    // borrar del disco el archivo que quede huérfano si el operador la sustituye.
     const [[anterior]] = await db.query("SELECT zon_imagen_url FROM zon_zona_turistica WHERE zon_id_zona = ?", [
       req.params.id,
     ]);

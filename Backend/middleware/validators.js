@@ -1,5 +1,17 @@
 const { body, param, query } = require("express-validator");
 
+/**
+ * Reglas de negocio del caso expresadas como validación de entrada.
+ *
+ * Se comprueban aquí, en el servidor, y no solo en el formulario de Angular: el
+ * frontend evita que el operador se equivoque, pero cualquiera puede llamar a la
+ * API directamente. Cuando algo no pasa, validate.middleware corta la petición con
+ * un 400 y el controlador ya recibe datos limpios y convertidos.
+ */
+
+// Vocabulario cerrado del caso: los intereses que puede marcar el turista y el
+// esfuerzo del recorrido a pie. Son los mismos valores que usan el planificador,
+// el filtro de zonas y la base de datos.
 const CATEGORIAS = ["Naturaleza", "Historia", "Aventura", "Cultura", "Gastronomía"];
 const DIFICULTADES = ["Fácil", "Moderada", "Exigente"];
 
@@ -16,11 +28,17 @@ const imagenSubida = (campo = "imagenUrl") =>
 const idParam = (nombre = "id") =>
   param(nombre).isInt({ min: 1 }).withMessage("Identificador inválido").toInt();
 
+/** Acceso al panel: aquí solo se exige que vengan; comprobarlas es cosa del login. */
 const credencialesLogin = [
   body("usuario").trim().notEmpty().withMessage("El usuario es obligatorio"),
   body("clave").notEmpty().withMessage("La contraseña es obligatoria"),
 ];
 
+/**
+ * Ficha de zona turística (Travel Group). Los rangos delimitan lo que sigue siendo
+ * un paseo a pie desde una estación: hasta 20 km de ida y hasta 8 horas ida y
+ * vuelta. Más allá deja de ser una ruta peatonal y sería un error de captura.
+ */
 const zonaBody = [
   body("estacionId").isInt({ min: 1 }).withMessage("Selecciona una estación").toInt(),
   body("nombre").trim().isLength({ min: 3, max: 150 }).withMessage("El nombre debe tener entre 3 y 150 caracteres"),
@@ -79,8 +97,14 @@ const servicioBody = [
   body("precio").isFloat({ min: 0, max: 100000 }).withMessage("La tarifa no puede ser negativa").toFloat(),
 ];
 
+/** Único campo del cambio de publicación, la decisión reservada al gestor MTC. */
 const publicadoBody = [body("publicado").isBoolean().withMessage("Indica si se publica o se retira").toBoolean()];
 
+/**
+ * Preferencias con las que el turista pide su informe. `minutosMax` se acota entre
+ * 30 y 240: por debajo no da tiempo a bajar del tren, caminar y volver; por encima
+ * ya no es una escala entre trenes sino una excursión de otro tipo.
+ */
 const informeBody = [
   body("estacionId").isInt({ min: 1 }).withMessage("Selecciona una estación").toInt(),
   body("zonaId").isInt({ min: 1 }).withMessage("Selecciona una zona turística").toInt(),
@@ -91,6 +115,8 @@ const informeBody = [
   body("fecha").isISO8601().withMessage("Fecha de viaje inválida"),
 ];
 
+// Filtros de solo lectura. Se limpian y convierten aquí (toInt) para que el
+// controlador los pueda meter en la consulta sin volver a comprobarlos.
 const climaQuery = [query("fecha").optional().isISO8601().withMessage("Fecha inválida")];
 
 const zonasQuery = [

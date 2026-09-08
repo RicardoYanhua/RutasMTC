@@ -27,6 +27,15 @@ const publico = (admin) => ({
   entidad: admin.usr_entidad,
 });
 
+/**
+ * POST /api/auth/login — acceso al panel de administración.
+ *
+ * La respuesta es idéntica tanto si el usuario no existe como si la contraseña no
+ * coincide: distinguirlas le confirmaría a un atacante qué usuarios son válidos.
+ * Se compara contra el hash bcrypt guardado; la clave en claro no se almacena ni
+ * se registra en ningún sitio. Las cuentas dadas de baja (`usr_activo = 0`) no
+ * llegan siquiera a la comparación.
+ */
 const login = async (req, res) => {
   try {
     const { usuario, clave } = req.body;
@@ -51,6 +60,13 @@ const login = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/auth/perfil — devuelve el usuario que viaja firmado en el token.
+ *
+ * El frontend lo llama al recargar la página para saber si la sesión sigue viva y
+ * con qué rol pintar el menú. No consulta la base de datos: si el token es válido,
+ * `verificarToken` ya dejó los datos en `req.usuario`.
+ */
 const perfil = async (req, res) => {
   return res.json({ success: true, mensaje: "Sesión activa", data: req.usuario });
 };
